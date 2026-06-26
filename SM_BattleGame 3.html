@@ -1,0 +1,3635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StrategyForge — CA Inter SM Battle Game</title>
+<style>
+/* ============================================================
+   DESIGN TOKENS — StrategyForge Battle Theme
+   ============================================================ */
+:root {
+  --bg-void:     #05050f;
+  --bg-deep:     #0a0a1a;
+  --bg-card:     #0f0f2a;
+  --bg-panel:    #12122e;
+  --border:      #1e1e4a;
+  --border-glow: #3d3d8a;
+
+  --violet:      #7c3aed;
+  --violet-lite: #a855f7;
+  --gold:        #f59e0b;
+  --gold-lite:   #fcd34d;
+  --cyan:        #06b6d4;
+  --green:       #10b981;
+  --red:         #ef4444;
+  --orange:      #f97316;
+
+  --text-1: #f0f0ff;
+  --text-2: #a0a0cc;
+  --text-3: #6060a0;
+
+  --ff-display: 'Segoe UI', system-ui, sans-serif;
+  --ff-mono:    'Courier New', monospace;
+
+  --radius: 12px;
+  --radius-sm: 6px;
+  --shadow-glow: 0 0 20px rgba(124,58,237,0.4);
+}
+
+/* ============================================================
+   BASE RESET
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body {
+  background: var(--bg-void);
+  color: var(--text-1);
+  font-family: var(--ff-display);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+button { cursor: pointer; border: none; outline: none; font-family: inherit; }
+input { font-family: inherit; }
+
+/* ============================================================
+   ANIMATED BACKGROUND PARTICLES
+   ============================================================ */
+#particles {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+}
+.particle {
+  position: absolute;
+  width: 2px; height: 2px;
+  background: var(--violet-lite);
+  border-radius: 50%;
+  animation: float linear infinite;
+  opacity: 0;
+}
+@keyframes float {
+  0%   { transform: translateY(100vh) translateX(0); opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.3; }
+  100% { transform: translateY(-10vh) translateX(var(--dx,20px)); opacity: 0; }
+}
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+.screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
+.screen.active { display: flex; }
+
+/* ============================================================
+   INTRO / HOME SCREEN
+   ============================================================ */
+#screen-home {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+}
+.home-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border: 1px solid var(--violet);
+  border-radius: 100px;
+  color: var(--violet-lite);
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  animation: pulseBorder 2s ease-in-out infinite;
+}
+@keyframes pulseBorder {
+  0%,100% { box-shadow: 0 0 8px rgba(124,58,237,0.3); }
+  50%      { box-shadow: 0 0 20px rgba(124,58,237,0.7); }
+}
+.home-title {
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(135deg, #fff 0%, var(--violet-lite) 50%, var(--gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+}
+.home-sub {
+  font-size: 1.15rem;
+  color: var(--text-2);
+  margin-bottom: 40px;
+  max-width: 480px;
+}
+.home-stats {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 48px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.stat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.stat-pill .num {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--gold);
+}
+.stat-pill .label {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.btn-primary {
+  padding: 16px 48px;
+  background: linear-gradient(135deg, var(--violet), #5b21b6);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 100px;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 24px rgba(124,58,237,0.4);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(124,58,237,0.6);
+}
+.btn-secondary {
+  padding: 12px 28px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.btn-secondary:hover { border-color: var(--violet); color: var(--violet-lite); }
+
+/* ============================================================
+   CHAPTER SELECT SCREEN
+   ============================================================ */
+#screen-chapters {
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  gap: 32px;
+}
+.screen-header {
+  text-align: center;
+}
+.screen-header h2 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-1);
+}
+.screen-header p { color: var(--text-2); margin-top: 6px; }
+
+.chapters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 1100px;
+}
+.chapter-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.chapter-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--violet), var(--gold));
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.chapter-card:hover {
+  border-color: var(--violet);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-glow);
+}
+.chapter-card:hover::before { opacity: 1; }
+.chapter-card.locked { opacity: 0.5; cursor: not-allowed; }
+.chapter-num {
+  font-size: 0.75rem;
+  color: var(--violet-lite);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.chapter-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: var(--text-1);
+}
+.chapter-desc {
+  font-size: 0.85rem;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.chapter-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--text-3);
+}
+.chapter-progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 100px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+.chapter-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--violet), var(--gold));
+  border-radius: 100px;
+  transition: width 0.5s ease;
+}
+.chapter-xp-badge {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: rgba(245,158,11,0.15);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 100px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* ============================================================
+   GAME LAYOUT (shared for learn + quiz)
+   ============================================================ */
+#screen-game {
+  flex-direction: column;
+  min-height: 100vh;
+}
+.game-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+  flex-wrap: wrap;
+}
+.topbar-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-2);
+  flex: 1;
+  min-width: 120px;
+}
+/* Health Bar */
+.health-wrap { display: flex; align-items: center; gap: 8px; }
+.health-label { font-size: 0.75rem; color: var(--red); font-weight: 700; text-transform: uppercase; }
+.health-bar {
+  width: 120px; height: 12px;
+  background: rgba(239,68,68,0.15);
+  border-radius: 100px;
+  overflow: hidden;
+  border: 1px solid rgba(239,68,68,0.3);
+}
+.health-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ef4444, #f97316);
+  border-radius: 100px;
+  transition: width 0.5s ease;
+}
+/* XP Bar */
+.xp-wrap { display: flex; align-items: center; gap: 8px; }
+.xp-label { font-size: 0.75rem; color: var(--gold); font-weight: 700; text-transform: uppercase; }
+.xp-bar {
+  width: 120px; height: 12px;
+  background: rgba(245,158,11,0.15);
+  border-radius: 100px;
+  overflow: hidden;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--orange));
+  border-radius: 100px;
+  transition: width 0.5s ease;
+}
+/* Streak */
+.streak-badge {
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  color: var(--gold);
+  font-weight: 700;
+  min-width: 72px;
+}
+.level-badge {
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(124,58,237,0.15);
+  border: 1px solid rgba(124,58,237,0.4);
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  color: var(--violet-lite);
+  font-weight: 700;
+}
+
+/* ============================================================
+   MISSION LIST SIDEBAR + CONTENT AREA
+   ============================================================ */
+.game-body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  flex: 1;
+  min-height: 0;
+}
+@media (max-width: 700px) {
+  .game-body { grid-template-columns: 1fr; }
+  .mission-sidebar { display: none; }
+}
+.mission-sidebar {
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  padding: 20px 0;
+  overflow-y: auto;
+}
+.sidebar-chapter-label {
+  padding: 0 16px 8px;
+  font-size: 0.7rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+.mission-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+}
+.mission-item:hover { background: rgba(124,58,237,0.08); }
+.mission-item.active {
+  background: rgba(124,58,237,0.15);
+  border-left-color: var(--violet);
+}
+.mission-item.completed { opacity: 0.7; }
+.mission-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--border-glow);
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.mission-item.completed .mission-dot { background: var(--green); }
+.mission-item.active .mission-dot { background: var(--violet-lite); box-shadow: 0 0 8px var(--violet); }
+.mission-text { font-size: 0.8rem; color: var(--text-2); line-height: 1.3; }
+.mission-item.active .mission-text { color: var(--text-1); }
+
+/* ============================================================
+   MAIN CONTENT
+   ============================================================ */
+.game-content {
+  padding: 32px;
+  overflow-y: auto;
+  max-height: calc(100vh - 60px);
+}
+@media (max-width: 700px) {
+  .game-content { padding: 16px; max-height: none; }
+}
+
+/* ============================================================
+   LEARN CARD
+   ============================================================ */
+.learn-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  margin-bottom: 24px;
+  animation: slideUp 0.4s ease;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.learn-phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 16px;
+}
+.phase-explain    { background: rgba(6,182,212,0.15);  color: var(--cyan);   border: 1px solid rgba(6,182,212,0.3);  }
+.phase-icai       { background: rgba(124,58,237,0.15); color: var(--violet-lite); border: 1px solid rgba(124,58,237,0.3); }
+.phase-example    { background: rgba(16,185,129,0.15); color: var(--green);  border: 1px solid rgba(16,185,129,0.3);  }
+.phase-mnemonic   { background: rgba(245,158,11,0.15); color: var(--gold);   border: 1px solid rgba(245,158,11,0.3);  }
+.phase-revision   { background: rgba(249,115,22,0.15); color: var(--orange); border: 1px solid rgba(249,115,22,0.3);  }
+.phase-mistakes   { background: rgba(239,68,68,0.15);  color: var(--red);    border: 1px solid rgba(239,68,68,0.3);   }
+.phase-boss       { background: rgba(239,68,68,0.2);   color: #ff6b6b;       border: 1px solid rgba(239,68,68,0.5);   }
+
+.learn-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+.learn-body {
+  font-size: 1rem;
+  color: var(--text-2);
+  line-height: 1.75;
+}
+.learn-body strong { color: var(--gold); }
+.learn-body em { color: var(--cyan); font-style: normal; }
+.learn-body .highlight {
+  background: rgba(124,58,237,0.15);
+  border-left: 3px solid var(--violet);
+  padding: 12px 16px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin: 12px 0;
+}
+.mnemonic-box {
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  margin-top: 12px;
+}
+.mnemonic-word {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: 3px;
+  margin-bottom: 6px;
+}
+.mnemonic-expand { color: var(--text-2); font-size: 0.9rem; line-height: 1.6; }
+.bullet-list { list-style: none; padding: 0; }
+.bullet-list li {
+  padding: 6px 0 6px 20px;
+  position: relative;
+  color: var(--text-2);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  border-bottom: 1px solid var(--border);
+}
+.bullet-list li:last-child { border-bottom: none; }
+.bullet-list li::before {
+  content: '▸';
+  position: absolute; left: 0;
+  color: var(--violet-lite);
+}
+
+/* ============================================================
+   SECTION TABS (Explain / ICAI / Example / Mnemonic / Revision / Mistakes)
+   ============================================================ */
+.learn-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.learn-tab {
+  padding: 8px 16px;
+  border-radius: 100px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--bg-panel);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+.learn-tab:hover { border-color: var(--violet); color: var(--violet-lite); }
+.learn-tab.active {
+  background: var(--violet);
+  color: #fff;
+  border-color: var(--violet);
+}
+
+/* ============================================================
+   QUIZ SECTION
+   ============================================================ */
+.quiz-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.quiz-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 100px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.qtype-mcq  { background: rgba(124,58,237,0.2); color: var(--violet-lite); border: 1px solid rgba(124,58,237,0.4); }
+.qtype-tf   { background: rgba(6,182,212,0.2);  color: var(--cyan);   border: 1px solid rgba(6,182,212,0.4); }
+.qtype-fill { background: rgba(16,185,129,0.2); color: var(--green);  border: 1px solid rgba(16,185,129,0.4); }
+.qtype-desc { background: rgba(245,158,11,0.2); color: var(--gold);   border: 1px solid rgba(245,158,11,0.4); }
+.qtype-case { background: rgba(239,68,68,0.2);  color: var(--red);    border: 1px solid rgba(239,68,68,0.4); }
+.qtype-boss { background: rgba(239,68,68,0.3);  color: #ff6b6b;       border: 1px solid rgba(239,68,68,0.5); }
+
+.quiz-points { font-size: 0.85rem; color: var(--gold); font-weight: 700; }
+
+.question-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  margin-bottom: 20px;
+  animation: slideUp 0.3s ease;
+}
+.question-num { font-size: 0.75rem; color: var(--text-3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+.question-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  color: var(--text-1);
+}
+.case-context {
+  background: rgba(124,58,237,0.08);
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-size: 0.9rem;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin-bottom: 16px;
+  font-style: italic;
+}
+
+/* MCQ Options */
+.options-grid { display: flex; flex-direction: column; gap: 10px; }
+.option-btn {
+  padding: 14px 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  font-size: 0.95rem;
+  text-align: left;
+  transition: all 0.15s;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.option-btn:hover:not(:disabled) {
+  border-color: var(--violet);
+  background: rgba(124,58,237,0.1);
+  transform: translateX(4px);
+}
+.option-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px; height: 24px;
+  border-radius: 4px;
+  background: var(--border);
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: var(--text-2);
+}
+.option-btn.correct {
+  background: rgba(16,185,129,0.15);
+  border-color: var(--green);
+  color: var(--green);
+}
+.option-btn.correct .option-key { background: var(--green); color: #000; }
+.option-btn.wrong {
+  background: rgba(239,68,68,0.12);
+  border-color: var(--red);
+  color: var(--red);
+}
+.option-btn.wrong .option-key { background: var(--red); color: #fff; }
+.option-btn:disabled { cursor: default; }
+
+/* True/False */
+.tf-grid { display: flex; gap: 16px; }
+.tf-btn {
+  flex: 1;
+  padding: 20px;
+  background: var(--bg-panel);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-1);
+  font-size: 1.2rem;
+  font-weight: 800;
+  transition: all 0.15s;
+  letter-spacing: 1px;
+}
+.tf-btn:hover:not(:disabled) { transform: scale(1.03); }
+.tf-btn.true-btn:hover:not(:disabled) { border-color: var(--green); color: var(--green); background: rgba(16,185,129,0.1); }
+.tf-btn.false-btn:hover:not(:disabled) { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.1); }
+.tf-btn.correct { border-color: var(--green) !important; color: var(--green) !important; background: rgba(16,185,129,0.15) !important; }
+.tf-btn.wrong   { border-color: var(--red)   !important; color: var(--red)   !important; background: rgba(239,68,68,0.12)  !important; }
+
+/* Fill in blank */
+.fill-wrap { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.fill-input {
+  flex: 1;
+  padding: 14px 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  font-size: 1rem;
+  min-width: 200px;
+  transition: border-color 0.15s;
+}
+.fill-input:focus { border-color: var(--violet); outline: none; }
+.fill-input.correct-input { border-color: var(--green); background: rgba(16,185,129,0.08); }
+.fill-input.wrong-input   { border-color: var(--red);   background: rgba(239,68,68,0.08);  }
+.btn-submit {
+  padding: 14px 28px;
+  background: var(--violet);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: all 0.15s;
+}
+.btn-submit:hover { background: var(--violet-lite); }
+
+/* Descriptive */
+.desc-textarea {
+  width: 100%;
+  padding: 16px 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 120px;
+  margin-bottom: 12px;
+  transition: border-color 0.15s;
+}
+.desc-textarea:focus { border-color: var(--violet); outline: none; }
+
+/* ============================================================
+   FEEDBACK PANEL
+   ============================================================ */
+.feedback-panel {
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-top: 16px;
+  animation: slideUp 0.3s ease;
+}
+.feedback-panel.correct-fb { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); }
+.feedback-panel.wrong-fb   { background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.3);  }
+.feedback-panel.info-fb    { background: rgba(6,182,212,0.1);  border: 1px solid rgba(6,182,212,0.3);  }
+.fb-title {
+  font-size: 1rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.correct-fb .fb-title { color: var(--green); }
+.wrong-fb   .fb-title { color: var(--red);   }
+.info-fb    .fb-title { color: var(--cyan);  }
+.fb-body { font-size: 0.9rem; color: var(--text-2); line-height: 1.6; }
+.fb-body strong { color: var(--gold); }
+
+/* ============================================================
+   QUIZ NAV BUTTONS
+   ============================================================ */
+.quiz-nav {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+.btn-next {
+  padding: 14px 32px;
+  background: linear-gradient(135deg, var(--violet), #5b21b6);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.3);
+}
+.btn-next:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(124,58,237,0.5); }
+.btn-skip {
+  padding: 14px 24px;
+  background: transparent;
+  color: var(--text-3);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+.btn-skip:hover { border-color: var(--border-glow); color: var(--text-2); }
+
+/* ============================================================
+   PROGRESS BAR (top of quiz)
+   ============================================================ */
+.quiz-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.quiz-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 100px;
+  overflow: hidden;
+}
+.quiz-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--violet), var(--gold));
+  border-radius: 100px;
+  transition: width 0.4s ease;
+}
+.quiz-progress-text { font-size: 0.8rem; color: var(--text-3); white-space: nowrap; }
+
+/* ============================================================
+   SECTION DIVIDER
+   ============================================================ */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 32px 0;
+  color: var(--text-3);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ============================================================
+   ANIMATIONS: SHAKE, GLOW, XP FLOAT
+   ============================================================ */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%  { transform: translateX(-8px); }
+  40%  { transform: translateX(8px); }
+  60%  { transform: translateX(-6px); }
+  80%  { transform: translateX(6px); }
+}
+.shake { animation: shake 0.4s ease; }
+
+@keyframes correctGlow {
+  0%,100% { box-shadow: none; }
+  50%     { box-shadow: 0 0 30px rgba(16,185,129,0.5); }
+}
+.correct-glow { animation: correctGlow 0.5s ease; }
+
+.xp-float {
+  position: fixed;
+  pointer-events: none;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(245,158,11,0.8);
+  animation: floatUp 1.5s ease forwards;
+  z-index: 9999;
+}
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-80px) scale(0.7); }
+}
+
+/* ============================================================
+   ACHIEVEMENT TOAST
+   ============================================================ */
+#achievement-toast {
+  position: fixed;
+  top: 80px; right: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  z-index: 9999;
+  max-width: 300px;
+  box-shadow: 0 8px 32px rgba(245,158,11,0.3);
+  transform: translateX(360px);
+  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+#achievement-toast.show { transform: translateX(0); }
+.toast-badge { color: var(--gold); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
+.toast-title { font-size: 1rem; font-weight: 800; color: var(--text-1); }
+.toast-desc  { font-size: 0.8rem; color: var(--text-2); margin-top: 4px; }
+
+/* ============================================================
+   CHAPTER COMPLETE SCREEN
+   ============================================================ */
+#screen-chapter-complete {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+}
+.complete-trophy { font-size: 5rem; margin-bottom: 16px; animation: bounce 0.6s ease; }
+@keyframes bounce {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.2) rotate(8deg); }
+}
+.complete-title { font-size: 2.5rem; font-weight: 900; color: var(--gold); margin-bottom: 8px; }
+.complete-sub   { font-size: 1.1rem; color: var(--text-2); margin-bottom: 32px; }
+.complete-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.complete-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 28px;
+  min-width: 120px;
+}
+.complete-stat .val { font-size: 2rem; font-weight: 900; color: var(--violet-lite); }
+.complete-stat .key { font-size: 0.75rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+/* ============================================================
+   WEAK TOPICS PANEL
+   ============================================================ */
+.weak-panel {
+  background: rgba(239,68,68,0.06);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+.weak-panel-title { font-size: 0.85rem; color: var(--red); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.weak-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(239,68,68,0.1);
+}
+.weak-item:last-child { border-bottom: none; }
+.weak-item .name { font-size: 0.85rem; color: var(--text-2); }
+.weak-item .acc  { font-size: 0.85rem; color: var(--red); font-weight: 700; }
+
+/* ============================================================
+   BOSS BATTLE INTRO
+   ============================================================ */
+.boss-intro {
+  background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(124,58,237,0.1));
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: var(--radius);
+  padding: 32px;
+  text-align: center;
+  margin-bottom: 32px;
+  animation: pulseBorder 1.5s ease-in-out infinite;
+}
+.boss-icon { font-size: 3rem; margin-bottom: 12px; }
+.boss-name { font-size: 1.8rem; font-weight: 900; color: #ff6b6b; margin-bottom: 8px; }
+.boss-desc { font-size: 0.95rem; color: var(--text-2); line-height: 1.6; }
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-void); }
+::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 100px; }
+</style>
+</head>
+<body>
+
+<!-- Ambient particles -->
+<div id="particles"></div>
+
+<!-- Achievement toast -->
+<div id="achievement-toast">
+  <div class="toast-badge">🏆 Achievement Unlocked!</div>
+  <div class="toast-title" id="toast-title"></div>
+  <div class="toast-desc"  id="toast-desc"></div>
+</div>
+
+<!-- ============================================================
+     SCREEN: HOME
+     ============================================================ -->
+<div id="screen-home" class="screen active">
+  <div class="home-badge">⚔️ CA Inter · Strategic Management</div>
+  <h1 class="home-title">StrategyForge</h1>
+  <p class="home-sub">Master Strategic Management for CA Intermediate. Battle through every concept. Score 50/50.</p>
+  <div class="home-stats">
+    <div class="stat-pill"><span class="num">5</span><span class="label">Chapters</span></div>
+    <div class="stat-pill"><span class="num">42</span><span class="label">Missions</span></div>
+    <div class="stat-pill"><span class="num">300+</span><span class="label">Questions</span></div>
+    <div class="stat-pill"><span class="num">ICAI</span><span class="label">Style</span></div>
+  </div>
+  <button class="btn-primary" onclick="showScreen('chapters')">⚔️ ENTER THE FORGE</button>
+  <br><br>
+  <button class="btn-secondary" onclick="showWeakTopics()">📊 Review Weak Topics</button>
+</div>
+
+<!-- ============================================================
+     SCREEN: CHAPTER SELECT
+     ============================================================ -->
+<div id="screen-chapters" class="screen" style="flex-direction:column;align-items:center;padding:40px 20px;gap:32px;">
+  <div class="screen-header">
+    <button class="btn-secondary" onclick="showScreen('home')" style="margin-bottom:12px;">← Back</button>
+    <h2>⚡ Choose Your Level</h2>
+    <p>Each chapter is a level. Complete missions, defeat the Final Boss.</p>
+  </div>
+  <div class="chapters-grid" id="chapters-grid"></div>
+</div>
+
+<!-- ============================================================
+     SCREEN: GAME (Learn + Quiz)
+     ============================================================ -->
+<div id="screen-game" class="screen" style="flex-direction:column;">
+  <!-- Top bar -->
+  <div class="game-topbar">
+    <button class="btn-secondary" onclick="showScreen('chapters')" style="padding:6px 14px;font-size:0.8rem;">← Levels</button>
+    <div class="topbar-title" id="topbar-title">Chapter 1 · Mission 1</div>
+    <div class="health-wrap">
+      <span class="health-label">HP</span>
+      <div class="health-bar"><div class="health-fill" id="health-fill" style="width:100%"></div></div>
+      <span id="health-num" style="font-size:0.8rem;color:var(--text-3);">100</span>
+    </div>
+    <div class="xp-wrap">
+      <span class="xp-label">XP</span>
+      <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+      <span id="xp-num" style="font-size:0.8rem;color:var(--text-3);">0</span>
+    </div>
+    <div class="streak-badge">🔥 <span id="streak-num">0</span>x</div>
+    <div class="level-badge">LVL <span id="level-num">1</span></div>
+  </div>
+  <!-- Body -->
+  <div class="game-body">
+    <div class="mission-sidebar" id="mission-sidebar"></div>
+    <div class="game-content" id="game-content"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN: CHAPTER COMPLETE
+     ============================================================ -->
+<div id="screen-chapter-complete" class="screen">
+  <div class="complete-trophy" id="complete-trophy">🏆</div>
+  <div class="complete-title" id="complete-title">Chapter Complete!</div>
+  <div class="complete-sub"   id="complete-sub">You conquered all missions.</div>
+  <div class="complete-stats" id="complete-stats"></div>
+  <button class="btn-primary" onclick="showScreen('chapters')" style="margin-right:12px;">🗺️ Back to Levels</button>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+'use strict';
+
+/* ============================================================
+   GAME DATA — All 5 Chapters of CA Inter Strategic Management
+   Add future chapters by extending this object.
+   ============================================================ */
+const GAME_DATA = {
+
+  chapters: [
+
+    // ═══════════════════════════════════════════════════════
+    // CHAPTER 1: Introduction to Strategic Management
+    // ═══════════════════════════════════════════════════════
+    {
+      id: 1,
+      title: "Introduction to Strategic Management",
+      subtitle: "The Foundation of Strategic Thinking",
+      icon: "🏛️",
+      xpReward: 200,
+      missions: [
+
+        // ─── MISSION 1-1 ───────────────────────────────────
+        {
+          id: "1-1",
+          title: "Meaning & Nature of Strategic Management",
+          content: {
+            explain: {
+              title: "What is Strategic Management?",
+              body: `<strong>Strategic Management</strong> is the <em>continuous process</em> of formulating, implementing, evaluating, and controlling strategies to achieve an organisation's long-term objectives.
+
+<div class="highlight">Think of it as the <strong>GPS for a business</strong> — it doesn't just tell you where you are, it tells you the best route to your destination and recalculates when conditions change.</div>
+
+Management has <strong>two meanings</strong>:
+<ul class="bullet-list">
+  <li><strong>Group Meaning:</strong> The key group of people in charge of the organisation's affairs.</li>
+  <li><strong>Process Meaning:</strong> The set of functions — Planning, Organising, Directing, Staffing, and Control — carried out to attain objectives.</li>
+</ul>
+
+Strategic Management involves: <strong>Developing Vision → Environmental Scanning → Strategy Formulation → Implementation → Evaluation & Control.</strong>`
+            },
+            icai: {
+              title: "ICAI Definition & Exam Angle",
+              body: `According to ICAI, Strategic Management is defined as:
+
+<div class="highlight">"A <strong>dynamic process</strong> of formulation, implementation, evaluation, and control of strategies to realise the organisation's <strong>strategic intent</strong>."</div>
+
+<strong>Key ICAI exam points:</strong>
+<ul class="bullet-list">
+  <li>It was originally called <strong>"Business Policy"</strong> before being renamed Strategic Management.</li>
+  <li>It emphasises monitoring <em>external opportunities and threats</em> in light of a company's <em>strengths and weaknesses</em>.</li>
+  <li>The process is <strong>cyclic</strong> — it never truly ends.</li>
+  <li>Overall objectives: (1) Create competitive advantage (2) Guide company through environmental changes.</li>
+</ul>
+
+<strong>Example from ICAI:</strong> Companies like Bajaj Scooters, Nokia, Kodak — fell because they could NOT adapt to the changing environment despite once being market leaders.`
+            },
+            example: {
+              title: "Real-World Example",
+              body: `<strong>UPI — Unified Payments Interface</strong>
+
+India identified a problem: cash-heavy economy, no easy digital payments. The government and NPCI formulated a strategy (UPI), implemented it, evaluated its adoption, and kept improving it. Today UPI has gone global.
+
+This is strategic management in action:
+<ul class="bullet-list">
+  <li><strong>Vision:</strong> Digital India, cashless economy</li>
+  <li><strong>Analysis:</strong> Identified pain points with cash</li>
+  <li><strong>Strategy:</strong> Create UPI platform</li>
+  <li><strong>Implementation:</strong> Rolled out via banks and apps</li>
+  <li><strong>Evaluation:</strong> Monitored adoption, fixed issues</li>
+</ul>
+
+<strong>Remember:</strong> 'Survival of the fittest' (Darwin) — in business, the fittest = those who <em>adapt</em>, not the largest or strongest.`
+            },
+            mnemonic: {
+              word: "FIEC",
+              expand: `<strong>F</strong>ormulation → <strong>I</strong>mplementation → <strong>E</strong>valuation → <strong>C</strong>ontrol
+
+This is the complete cycle of Strategic Management. Remembering FIEC = you remember the entire SM process.
+
+<em>"Friends In Every City"</em> — Formulate your friendship, Implement it, Evaluate if it's working, Control the outcomes!`
+            },
+            revision: {
+              title: "Quick Revision Notes",
+              body: `<ul class="bullet-list">
+  <li>SM = Dynamic, cyclic process of FIEC strategies</li>
+  <li>Originally called <strong>Business Policy</strong></li>
+  <li>Two meanings of Management: Group (people) + Process (functions)</li>
+  <li>Five management functions: Planning, Organising, Directing, Staffing, Control</li>
+  <li>SM objectives: Competitive advantage + Navigate environmental change</li>
+  <li>SM involves: Vision → Env. Scanning → Formulation → Implementation → Evaluation</li>
+  <li>Darwin's principle applies to business: adaptability = survival</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes Students Make",
+              body: `<ul class="bullet-list">
+  <li>❌ Confusing SM as <em>only</em> planning — it's a complete cycle including implementation and control</li>
+  <li>❌ Saying SM provides <em>guarantee</em> of success — it doesn't; it only improves the odds</li>
+  <li>❌ Thinking SM is only for large companies — all organisations (small, NGO, government) need it</li>
+  <li>❌ Mixing up strategic management with operational management — SM is long-term, high-level</li>
+  <li>❌ Forgetting it was originally called <strong>"Business Policy"</strong> — frequently asked in exams!</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "Strategic Management was originally called:",
+              opts: ["Corporate Planning","Business Policy","Strategic Planning","Business Strategy"],
+              correct: 1,
+              explanation: "Strategic Management was originally called 'Business Policy'. It was later renamed to Strategic Management to reflect its broader scope." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "The overall objectives of Strategic Management are:",
+              opts: ["Profit maximisation only","Creating competitive advantage and guiding through environmental changes","Reducing costs and improving quality","Increasing market share alone"],
+              correct: 1,
+              explanation: "ICAI states two objectives: (1) Create competitive advantage, (2) Guide the company through all changes in the environment." },
+            { type: "tf", points: 5,
+              q: "Strategic Management is a one-time process that ends once a strategy is implemented.",
+              correct: false,
+              explanation: "FALSE. Strategic Management is a continuous, cyclic process. It includes formulation, implementation, evaluation, and control — and then starts again." },
+            { type: "fill", points: 8,
+              q: "Fill in the blank: The process of Strategic Management involves Formulation, Implementation, ___________ and Control.",
+              correct: ["evaluation","Evaluation"],
+              explanation: "The four stages are Formulation → Implementation → Evaluation → Control (FIEC)." },
+            { type: "mcq", difficulty: "hard", points: 15,
+              q: "Which of the following BEST explains why Nokia failed despite being a market leader?",
+              opts: ["Poor financial management","Failed to adapt to changing business environment (touchscreen smartphones)","Lacked manufacturing capacity","Had poor customer service"],
+              correct: 1,
+              explanation: "Nokia's failure is a classic example of not adapting to environmental changes. Darwin's 'survival of the fittest' in business means those who adapt, not those who are largest or strongest." },
+            { type: "case", points: 20,
+              context: "Rohan runs a small ketchup brand. He notices that customers are becoming health-conscious. He decides to reduce sugar and preservatives in his ketchup and market it as 'healthier for your family'. His sales increase significantly in 6 months.",
+              q: "Which aspect of Strategic Management does Rohan's action BEST represent?",
+              opts: ["Strategy Formulation only","Operational Management","Strategy responding to external environment change — a proactive AND reactive strategy","Financial Management"],
+              correct: 2,
+              explanation: "Rohan identified an external environment change (health-consciousness), formulated a strategy (healthier product), and implemented it. This is a blend of proactive planning and reactive adaptation — the essence of Strategic Management." },
+            { type: "desc", points: 25,
+              q: "Explain the meaning of Strategic Management and why it is important for modern businesses. Give one example.",
+              keyPoints: ["Dynamic cyclic process","FIEC stages","Creates competitive advantage","Helps navigate environmental changes","Real example"] }
+          ]
+        },
+
+        // ─── MISSION 1-2 ───────────────────────────────────
+        {
+          id: "1-2",
+          title: "Concept of Strategy",
+          content: {
+            explain: {
+              title: "What is Strategy?",
+              body: `<strong>Strategy</strong> is a <em>long-range blueprint</em> of an organisation's desired image, direction, and destination.
+
+It defines:
+<ul class="bullet-list">
+  <li><strong>What</strong> the organisation wants to be</li>
+  <li><strong>What</strong> it wants to do</li>
+  <li><strong>How</strong> it wants to do things</li>
+  <li><strong>Where</strong> it wants to go</li>
+</ul>
+
+<div class="highlight">Strategy = The <strong>game plan</strong> management uses to take market position, attract customers, compete successfully, and achieve organisational objectives.</div>
+
+<strong>Key definitions:</strong>
+<ul class="bullet-list">
+  <li><strong>Igor Ansoff:</strong> "The common thread among organisation's activities and product-markets that defines the essential nature of business."</li>
+  <li><strong>William F. Glueck:</strong> "A unified, comprehensive and integrated plan designed to assure that the basic objectives of the enterprise are achieved."</li>
+</ul>`
+            },
+            icai: {
+              title: "ICAI Exam: Proactive vs Reactive Strategy",
+              body: `<strong>IMPORTANT ICAI CONCEPT — Strategy is partly Proactive and partly Reactive:</strong>
+
+<div class="highlight"><strong>Proactive Strategy:</strong> Planned, deliberate actions managers take to improve market position.<br><strong>Reactive Strategy:</strong> Adaptive responses to unexpected developments and fresh market conditions.</div>
+
+A company's <strong>Actual Strategy = Proactive + Reactive</strong>
+
+Strategy is also described as:
+<ul class="bullet-list">
+  <li>A <strong>scheme of corporate intent and action</strong> to mobilise resources</li>
+  <li>Provides <em>dynamic direction, focus, and cohesiveness</em> to the organisation</li>
+  <li>Never perfect, always <strong>flexible and pragmatic</strong></li>
+  <li>Formulated at three levels: <strong>Corporate, Divisional, Functional</strong></li>
+</ul>
+
+<strong>Important:</strong> Strategy is <em>NOT</em> a substitute for sound management. Allowances are always made for miscalculations and unanticipated events.`
+            },
+            example: {
+              title: "Example: Proactive & Reactive",
+              body: `<strong>Jio's Entry into Telecom (2016)</strong>
+
+<strong>Proactive:</strong> Jio planned years in advance — built 4G infrastructure across India, secured spectrum, developed apps like JioTV, JioCinema.
+
+<strong>Reactive:</strong> When competitors started slashing prices (Airtel, Vodafone), Jio responded with free calls forever and extended the free data period.
+
+<strong>Result:</strong> Jio disrupted the entire telecom industry. This is a perfect blend of proactive and reactive strategy.
+
+<em>"Crafting a strategy involves stitching together a proactive/intended strategy and then adapting pieces of successful reactions as circumstances change."</em>`
+            },
+            mnemonic: {
+              word: "UCIF",
+              expand: `Strategy is: <strong>U</strong>nified · <strong>C</strong>omprehensive · <strong>I</strong>ntegrated · <strong>F</strong>lexible
+
+(Glueck's definition: Unified, Comprehensive and Integrated Plan)
+
+Remember: "<em>Uncle Comp is Integrated and Flexible</em>" = Strategy's four key adjectives!`
+            },
+            revision: {
+              title: "Quick Revision Notes",
+              body: `<ul class="bullet-list">
+  <li>Strategy = Long-range blueprint of organisation's direction</li>
+  <li>Ansoff: Common thread among activities and product-markets</li>
+  <li>Glueck: Unified, Comprehensive, Integrated plan</li>
+  <li>Two types: Proactive (planned) + Reactive (adaptive)</li>
+  <li>Actual Strategy = Proactive + Reactive elements</li>
+  <li>Strategy is flexible, never perfect</li>
+  <li>Formulated at: Corporate → Divisional → Functional levels</li>
+  <li>NOT a substitute for sound management</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Thinking strategy is ONLY proactive (planned) — it's always a blend</li>
+  <li>❌ Confusing strategy with tactics — Strategy is long-term; tactics are short-term</li>
+  <li>❌ Mixing up Ansoff and Glueck definitions — Ansoff = common thread; Glueck = unified/comprehensive plan</li>
+  <li>❌ Saying strategy is perfect — ICAI explicitly states it's never perfect or optimal</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "According to William F. Glueck, strategy is a:",
+              opts: ["Long-range blueprint","Unified, comprehensive and integrated plan","Common thread among activities","Game plan for operations"],
+              correct: 1,
+              explanation: "Glueck defined strategy as 'A unified, comprehensive and integrated plan designed to assure that the basic objectives of the enterprise are achieved.'" },
+            { type: "tf", points: 5,
+              q: "A company's actual strategy consists only of proactive (planned) elements.",
+              correct: false,
+              explanation: "FALSE. A company's actual strategy is partly proactive (planned) and partly reactive (adaptive to unanticipated developments). Both elements together form the actual strategy." },
+            { type: "mcq", difficulty: "hard", points: 15,
+              q: "Igor Ansoff defined strategy as the common thread among the organisation's:",
+              opts: ["Resources and capabilities","Activities and product-markets","Strengths and weaknesses","Vision and mission"],
+              correct: 1,
+              explanation: "Ansoff defined strategy as 'The common thread among the organization's activities and product-markets that defines the essential nature of business that the organization has or planned to be in future.'" },
+            { type: "fill", points: 8,
+              q: "Strategy is partly __________ and partly reactive.",
+              correct: ["proactive","Proactive"],
+              explanation: "A company's strategy is a blend of proactive actions (deliberate planning) and reactive responses (adaptive reactions to unexpected developments)." },
+            { type: "case", points: 20,
+              context: "TechStart Ltd. launches a project management software. They plan their market entry strategy for 12 months. However, during launch, a competitor releases a similar product at half the price. TechStart immediately introduces a free tier with premium features to compete.",
+              q: "TechStart's original 12-month plan is an example of ________ strategy, while their quick response is an example of ________ strategy.",
+              opts: ["Reactive; Proactive","Proactive; Reactive","Stability; Growth","Corporate; Functional"],
+              correct: 1,
+              explanation: "The original planned 12-month strategy = Proactive (deliberate). The quick response to the competitor = Reactive (adaptive). Together they form TechStart's actual strategy." }
+          ]
+        },
+
+        // ─── MISSION 1-3 ───────────────────────────────────
+        {
+          id: "1-3",
+          title: "Importance & Limitations of Strategic Management",
+          content: {
+            explain: {
+              title: "Why Does Strategic Management Matter?",
+              body: `Strategic Management matters because it determines whether a business <strong>survives, thrives, or perishes</strong>.
+
+<strong>Key Benefits (Importance):</strong>
+<ul class="bullet-list">
+  <li>🎯 <strong>Direction:</strong> Defines goals and mission; gives the organisation a sense of purpose</li>
+  <li>⚡ <strong>Proactive stance:</strong> Helps organisations shape their future instead of being reactive</li>
+  <li>🧭 <strong>Decision framework:</strong> Guides major decisions on businesses, products, markets, investments</li>
+  <li>🔭 <strong>Opportunity finder:</strong> Helps identify and reach available opportunities</li>
+  <li>🛡️ <strong>Defence mechanism:</strong> Protects against costly mistakes in product/market choices</li>
+  <li>📈 <strong>Longevity:</strong> Helps organisations survive long-term through disciplined strategy</li>
+  <li>💪 <strong>Core Competency:</strong> Builds competitive advantages for survival and growth</li>
+</ul>`
+            },
+            icai: {
+              title: "ICAI: Limitations of Strategic Management",
+              body: `<strong>Limitations (equally important for exams):</strong>
+
+<ul class="bullet-list">
+  <li>🌪️ <strong>Complex environment:</strong> Environment is turbulent and unpredictable; forecasts may go wrong. <em>Example: EV brands counting on govt. push, but customers stayed away due to safety fears.</em></li>
+  <li>💰 <strong>Costly process:</strong> Strategic analysis requires significant time, money, and expertise</li>
+  <li>🕐 <strong>Time-consuming:</strong> Can slow down other productive work</li>
+  <li>🤷 <strong>No guarantee:</strong> Even the best strategy can fail due to unforeseen factors</li>
+  <li>🔄 <strong>Resistance to change:</strong> Employees may resist new strategic directions</li>
+  <li>🧩 <strong>Implementation gap:</strong> A good strategy can fail in poor execution</li>
+</ul>
+
+<div class="highlight"><strong>ICAI Two Main Limitations:</strong> (1) Gives innovative options but doesn't tell which one to pick. (2) Can be time-consuming, hurting overall functioning.</div>`
+            },
+            example: {
+              title: "Examples: Importance & Limitations",
+              body: `<strong>Importance — Amazon's Strategy:</strong>
+Amazon continuously uses strategic management: entering new markets (AWS cloud), identifying opportunities (Prime ecosystem), and defending against competitors (price wars). This strategic discipline made it one of the world's most valuable companies.
+
+<strong>Limitation — Kingfisher Airlines:</strong>
+Kingfisher had a grand strategy to be India's premium airline. However, high fuel costs (unpredictable environment), overleveraged expansion (costly), and implementation failures led to its collapse. Even a written strategy couldn't save it when execution failed.
+
+<strong>Lesson:</strong> Strategic Management improves chances but provides NO guarantee.`
+            },
+            mnemonic: {
+              word: "D-P-D-O-D-L-C",
+              expand: `<strong>Importance of SM — 7 Benefits:</strong>
+<strong>D</strong>irection · <strong>P</strong>roactive · <strong>D</strong>ecision framework · <strong>O</strong>pportunity · <strong>D</strong>efence · <strong>L</strong>ongevity · <strong>C</strong>ore competency
+
+"<em>Daring Professionals Do Outstanding Defensive Leaps Confidently</em>"`
+            },
+            revision: {
+              title: "Quick Revision Notes",
+              body: `<ul class="bullet-list">
+  <li>Importance: Direction, Proactive, Decision framework, Opportunity, Defence, Longevity, Core competency</li>
+  <li>Limitations: Complex environment, costly, time-consuming, no guarantee, resistance, implementation gap</li>
+  <li>ICAI's two main limitations: (1) Doesn't tell which option to pick (2) Time-consuming</li>
+  <li>Example of limitation: EV brands and changing customer sentiment</li>
+  <li>Darwin's principle: Fittest = most adaptable, not largest</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Listing only importance — exams frequently ask for BOTH importance AND limitations</li>
+  <li>❌ Saying SM guarantees success — it improves odds but provides no guarantee</li>
+  <li>❌ Forgetting to give examples of limitations — EV example from ICAI is important</li>
+  <li>❌ Confusing limitations with failures — limitations are inherent constraints, not company failures</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "Strategic Management helps organisations be __________ instead of reactive.",
+              opts: ["Passive","Proactive","Aggressive","Conservative"],
+              correct: 1,
+              explanation: "One key benefit of Strategic Management is that it helps organisations be PROACTIVE — they analyse and take actions instead of being mere spectators." },
+            { type: "tf", points: 5,
+              q: "Strategic Management provides a complete guarantee of organisational success.",
+              correct: false,
+              explanation: "FALSE. Strategic Management improves the probability of success but provides NO guarantee. Even the best strategy can fail due to unforeseen environmental factors." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "Which of the following is NOT a benefit of Strategic Management?",
+              opts: ["Provides direction to the organisation","Helps identify opportunities","Guarantees profit in all situations","Serves as a defence mechanism against mistakes"],
+              correct: 2,
+              explanation: "Strategic Management does NOT guarantee profit. It helps organisations perform better and navigate environments, but cannot guarantee success in all situations." },
+            { type: "mcq", difficulty: "hard", points: 15,
+              q: "According to ICAI, the two MAIN limitations of Strategic Analysis are:",
+              opts: ["Expensive and inaccurate","Gives innovative options but doesn't indicate which to pick; and is time-consuming","Requires too many people and is hard to implement","Focuses only on external factors and ignores internal strengths"],
+              correct: 1,
+              explanation: "ICAI explicitly states: (1) Strategic analysis gives many innovative options but doesn't tell which one to pick. (2) It can be time-consuming, hurting overall organisational functioning." },
+            { type: "desc", points: 20,
+              q: "State any FOUR benefits of Strategic Management with brief explanations.",
+              keyPoints: ["Direction/goals","Proactive stance","Decision framework","Opportunity identification","Defence mechanism","Longevity","Core competency"] }
+          ]
+        },
+
+        // ─── MISSION 1-4 ───────────────────────────────────
+        {
+          id: "1-4",
+          title: "Strategic Intent: Vision, Mission, Goals & Values",
+          content: {
+            explain: {
+              title: "Strategic Intent — The 'Why'",
+              body: `<strong>Strategic Intent</strong> refers to the <em>purposes</em> of what the organisation strives for. It is the <strong>philosophical base</strong> of strategic management — the "Why they want to do what they do."
+
+<div class="highlight">Strategic Intent = Vision + Mission + Goals/Objectives + Values</div>
+
+<strong>Hierarchy:</strong>
+<ul class="bullet-list">
+  <li><strong>Vision:</strong> Where we WANT to go (long-term aspirational direction)</li>
+  <li><strong>Mission:</strong> What business we are in and what we do (current purpose)</li>
+  <li><strong>Goals:</strong> Open-ended future states (broader)</li>
+  <li><strong>Objectives:</strong> Specific, measurable, time-bound targets</li>
+  <li><strong>Values:</strong> The ethical principles guiding all actions</li>
+</ul>`
+            },
+            icai: {
+              title: "ICAI Definitions",
+              body: `<strong>Vision:</strong> Management's aspirations for the business — a panoramic view of "where we are to go." It <em>delineates</em> the direction and provides a rationale for why the direction makes good business sense.
+
+<strong>Mission:</strong> Answer to "What business are we in and what do we do?" <em>Note:</em> Many firms fail because they don't conceptualise their mission clearly.
+
+<div class="highlight"><strong>Goals vs Objectives:</strong><br>
+Goals = Open-ended attributes denoting future states (broader)<br>
+Objectives = Close-ended, precise, expressed in specific terms (more specific)<br>
+<em>Note: ICAI says these terms are often used interchangeably.</em></div>
+
+<strong>Values:</strong> The ethical principles, standards, and beliefs that guide all strategic decisions.
+
+<strong>Why have a Mission?</strong> Without a clear mission, firms fumble in identifying opportunities and fail to formulate strategies.`
+            },
+            example: {
+              title: "Real-World Examples",
+              body: `<strong>Infosys:</strong>
+<ul class="bullet-list">
+  <li><strong>Vision:</strong> "To be a globally respected corporation that provides best-of-breed business solutions."</li>
+  <li><strong>Mission:</strong> "To achieve our objectives in an environment of fairness, honesty, and courtesy."</li>
+</ul>
+
+<strong>Tata Group:</strong>
+<ul class="bullet-list">
+  <li><strong>Values:</strong> Integrity, Responsibility, Excellence, Pioneering, Unity</li>
+  <li>These values guide ALL business decisions across 100+ companies in 100+ countries</li>
+</ul>
+
+<strong>Patanjali:</strong>
+<ul class="bullet-list">
+  <li>Vision: Swadeshi products, self-reliant India</li>
+  <li>Multiple SBUs (healthcare, FMCG, organic foods) all aligned to one overarching vision</li>
+</ul>`
+            },
+            mnemonic: {
+              word: "VMGOV",
+              expand: `<strong>V</strong>ision → <strong>M</strong>ission → <strong>G</strong>oals → <strong>O</strong>bjectives → <strong>V</strong>alues
+
+"<em>Very Motivated Goal-Oriented Visionaries</em>"
+
+Or remember the hierarchy top-to-bottom: Strategic Intent flows from the abstract (Vision) to the specific (Objectives), guided by Values at every step.`
+            },
+            revision: {
+              title: "Quick Revision Notes",
+              body: `<ul class="bullet-list">
+  <li>Strategic Intent = philosophical base of SM = "Why they want to do what they do"</li>
+  <li>Vision = Where to go (long-term aspiration)</li>
+  <li>Mission = What business we are in (current purpose)</li>
+  <li>Goals = Open-ended, broader future states</li>
+  <li>Objectives = Close-ended, specific, measurable</li>
+  <li>Values = Ethical principles guiding all decisions</li>
+  <li>Without clear mission: firms fumble in identifying opportunities</li>
+  <li>Goals and Objectives often used interchangeably in ICAI</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Confusing Vision (where to go) with Mission (what we do now) — very common error</li>
+  <li>❌ Saying Goals and Objectives are always different — ICAI says they're often interchangeable</li>
+  <li>❌ Ignoring Values — Values are part of strategic intent and guide decision-making</li>
+  <li>❌ Writing Mission as future-oriented — Mission describes CURRENT business purpose</li>
+  <li>❌ Forgetting Strategic Intent = the "Why" = philosophical base</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "Which component of Strategic Intent answers 'What business are we in?'",
+              opts: ["Vision","Mission","Objectives","Values"],
+              correct: 1,
+              explanation: "Mission answers 'What business are we in and what do we do?' It describes the current purpose and identity of the organisation." },
+            { type: "tf", points: 5,
+              q: "Vision and Mission mean the same thing in Strategic Management.",
+              correct: false,
+              explanation: "FALSE. Vision is where we WANT TO GO (long-term aspiration). Mission is what business we are currently in and what we do (current purpose). They are distinct but complementary." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "According to ICAI, Goals are __________ while Objectives are __________.",
+              opts: ["Specific; Broad","Open-ended; Close-ended and precise","Long-term; Short-term","Financial; Non-financial"],
+              correct: 1,
+              explanation: "Goals are open-ended attributes denoting future states. Objectives are close-ended, precise, and expressed in specific terms. However, ICAI notes these terms are often used interchangeably." },
+            { type: "fill", points: 8,
+              q: "Strategic Intent is referred to as the __________ base of Strategic Management.",
+              correct: ["philosophical","Philosophical"],
+              explanation: "Strategic Intent is the philosophical base of Strategic Management. It implies the purposes which an organisation endeavours to achieve." },
+            { type: "case", points: 20,
+              context: "A new startup 'EduAI' states: 'We will be the world's leading AI-powered education platform by 2035' and 'We currently provide personalised learning solutions for students aged 10-18 in India.' The company operates on principles of accessibility, innovation, and integrity.",
+              q: "Identify the Vision, Mission and Values of EduAI from the above.",
+              opts: ["Vision: World's leading AI platform by 2035; Mission: Current education provision; Values: Accessibility, Innovation, Integrity","Vision: Current education provision; Mission: World's leading platform; Values: None mentioned","Vision: Accessibility; Mission: Innovation; Values: World's leading platform","Cannot be determined from the information given"],
+              correct: 0,
+              explanation: "Vision = where they want to GO (world's leading AI platform by 2035). Mission = what they DO NOW (personalised learning for 10-18 yr olds in India). Values = guiding principles (accessibility, innovation, integrity)." }
+          ]
+        },
+
+        // ─── MISSION 1-5 ───────────────────────────────────
+        {
+          id: "1-5",
+          title: "Strategic Levels in Organisations",
+          content: {
+            explain: {
+              title: "Three Levels of Strategy",
+              body: `In large organisations, strategies are formulated at <strong>three distinct levels</strong>:
+
+<ul class="bullet-list">
+  <li><strong>Corporate Level:</strong> Top management (Head Office). Direction for the entire company. Decisions on expansion, mergers, diversification, new investments.</li>
+  <li><strong>Business Level:</strong> Divisional managers. Strategy for each Strategic Business Unit (SBU) or product/market division. How to compete in specific markets.</li>
+  <li><strong>Functional Level:</strong> Department managers. Strategies for specific functions — Marketing, Finance, HR, Operations, Logistics.</li>
+</ul>
+
+<div class="highlight">Think of it as a <strong>hierarchy</strong>: Corporate gives direction → Business implements in markets → Functional executes day-to-day.</div>`
+            },
+            icai: {
+              title: "ICAI Exam Details",
+              body: `<strong>Corporate Level Strategy:</strong> Formulated by top managers. Covers:
+<ul class="bullet-list">
+  <li>Plans for expansion and growth</li>
+  <li>Vertical and horizontal integration</li>
+  <li>Diversification, takeovers, mergers</li>
+  <li>New investment and divestment areas</li>
+  <li>R&D projects</li>
+</ul>
+
+<strong>Business Level Strategy:</strong> For each product/process division (SBU). Operationalises corporate strategy through decisions on:
+<ul class="bullet-list">
+  <li>Product lines, production volumes, quality ranges, prices</li>
+  <li>Market penetration strategies</li>
+</ul>
+
+<strong>Functional Level Strategy:</strong> For specific departments:
+<ul class="bullet-list">
+  <li>Marketing, Financial, HR, Logistics, Production strategies</li>
+</ul>
+
+<strong>Example: Patanjali</strong> — Corporate level decides to enter organic foods. Business level (organic foods division) decides which products. Functional level (marketing) decides how to advertise.`
+            },
+            example: {
+              title: "Tata Group Example",
+              body: `<strong>Tata Group — Three Level Strategy:</strong>
+
+<strong>Corporate (Tata Sons):</strong>
+Decided to enter electric vehicles (Tata Motors EV). Decided to expand into Africa. These are corporate-level directional decisions.
+
+<strong>Business (Tata Motors):</strong>
+How to compete in passenger cars vs commercial vehicles. EV pricing strategy vs petrol. Nexon EV vs Tigor EV — different SBU strategies.
+
+<strong>Functional (Tata Motors Marketing Dept.):</strong>
+Which ads to run, which platforms (social media vs TV), dealer incentive schemes, EMI schemes for EV buyers.
+
+<em>Each level is interdependent — you cannot have great functional strategy if the business strategy is wrong, and business strategy is meaningless without corporate direction.</em>`
+            },
+            mnemonic: {
+              word: "CBF",
+              expand: `<strong>C</strong>orporate → <strong>B</strong>usiness → <strong>F</strong>unctional
+
+"<em>Clever Bosses Focus</em>" — or think of it as a <strong>triangle</strong>: Corporate at the top, Functional at the base.
+
+Corporate = What to be? | Business = How to compete? | Functional = How to execute?`
+            },
+            revision: {
+              title: "Quick Revision Notes",
+              body: `<ul class="bullet-list">
+  <li>Three levels: Corporate → Business → Functional</li>
+  <li>Corporate: Top management, direction for entire company</li>
+  <li>Business: Division/SBU level, how to compete in specific markets</li>
+  <li>Functional: Department level, marketing/finance/HR/operations</li>
+  <li>Corporate strategies operationalised by business and functional strategies</li>
+  <li>All three levels are interdependent and interrelated</li>
+  <li>Patanjali / Tata Group = good examples of multi-level strategy</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Confusing Business level with Functional level — Business = how to compete; Functional = how to execute the function</li>
+  <li>❌ Thinking only large companies have three levels — all organisations need strategy, though the formality differs</li>
+  <li>❌ Saying Corporate level is only about finance — Corporate covers mergers, diversification, R&D, new investments</li>
+  <li>❌ Ignoring the network/interdependence between all three levels</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "Decisions related to mergers, acquisitions, and diversification are made at which level?",
+              opts: ["Functional Level","Business Level","Corporate Level","Operational Level"],
+              correct: 2,
+              explanation: "Corporate Level strategies (formulated by top management) include decisions on expansion, mergers, acquisitions, diversification, and new investments." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "Marketing, Finance and HR strategies are examples of which level?",
+              opts: ["Corporate Level","Business Level","Functional Level","All of the above"],
+              correct: 2,
+              explanation: "Functional Level strategies are formulated for specific functions like Marketing, Finance, HR, Logistics, and Production. These implement corporate and business strategies at the ground level." },
+            { type: "tf", points: 5,
+              q: "Business Level strategy focuses on the direction for the entire organisation.",
+              correct: false,
+              explanation: "FALSE. Business Level strategy focuses on how to compete in a SPECIFIC market or product division (SBU). Corporate Level strategy provides direction for the ENTIRE organisation." },
+            { type: "mcq", difficulty: "hard", points: 15,
+              q: "Patanjali's decision to enter the Organic Foods market is a __________ level decision, while the Organic Foods division deciding which products to launch is a __________ level decision.",
+              opts: ["Business; Functional","Corporate; Business","Functional; Business","Corporate; Functional"],
+              correct: 1,
+              explanation: "Entering Organic Foods = Corporate Level (direction for the entire company). The Organic Foods division deciding specific products = Business Level (SBU-specific strategy)." },
+            { type: "fill", points: 8,
+              q: "The three levels of strategic management are Corporate, __________, and Functional.",
+              correct: ["business","Business"],
+              explanation: "The three strategic levels are: (1) Corporate Level — top management, (2) Business Level — divisional/SBU, (3) Functional Level — departments like Marketing, Finance, HR." },
+            { type: "desc", points: 20,
+              q: "Distinguish between Corporate Level, Business Level, and Functional Level strategies with examples.",
+              keyPoints: ["Corporate = entire org direction","Business = SBU/competitive strategy","Functional = dept execution","Examples for each","Interdependence"] }
+          ]
+        },
+
+      ], // end chapter 1 missions
+
+      // Chapter 1 Boss Battle
+      boss: {
+        name: "The Grand Strategy Guardian",
+        description: "Prove you've mastered all concepts of Introduction to Strategic Management. The Guardian tests ICAI-level knowledge across all 5 missions!",
+        questions: [
+          { type: "mcq", difficulty: "boss", points: 25,
+            q: "Which of the following BEST describes the relationship between Vision and Mission?",
+            opts: ["Vision and Mission are identical concepts","Vision is the aspirational long-term direction; Mission is the current business purpose","Mission is future-oriented; Vision is current","Both describe what business the organisation is in"],
+            correct: 1,
+            explanation: "Vision = aspirational, long-term (where to go). Mission = current purpose (what we do). They are complementary but distinct." },
+          { type: "mcq", difficulty: "boss", points: 25,
+            q: "An organisation continues with its existing products in existing markets without major changes. This is an example of what level strategy?",
+            opts: ["Functional level strategy","Stability strategy at corporate level","Business diversification","Reactive strategy"],
+            correct: 1,
+            explanation: "Continuing with existing products in existing markets without major changes = Stability Strategy, which is a corporate-level grand strategy." },
+          { type: "tf", points: 20,
+            q: "Strategic Management was originally called 'Corporate Policy' before being renamed.",
+            correct: false,
+            explanation: "FALSE. It was originally called 'BUSINESS Policy' (not Corporate Policy). This is a frequently tested ICAI fact." },
+          { type: "mcq", difficulty: "boss", points: 30,
+            q: "Strategy is described as 'partly proactive and partly reactive.' Which statement CORRECTLY explains this?",
+            opts: ["Proactive strategy replaces reactive strategy as the company grows","Companies use proactive for new products and reactive for existing ones","Actual strategy = deliberate planned actions + adaptive responses to unexpected developments","Reactive strategy is only used in crisis situations"],
+            correct: 2,
+            explanation: "A company's actual strategy is always a blend: proactive (deliberate, planned managerial decisions) + reactive (adaptive responses to unanticipated developments and fresh market conditions)." },
+          { type: "case", points: 35,
+            context: "XYZ Conglomerate has 5 divisions: Steel, Retail, Telecom, IT Services, and Real Estate. The Board of Directors decides to exit the Real Estate division and invest more in IT Services. The IT Services Division's Managing Director then decides to focus on cloud computing rather than traditional software. The IT Division's HR team creates a new talent acquisition plan to hire 500 cloud engineers.",
+            q: "Which of the following CORRECTLY maps the three strategic levels for XYZ Conglomerate?",
+            opts: ["Exit Real Estate = Business; Cloud focus = Corporate; HR plan = Functional","Exit Real Estate = Corporate; Cloud focus = Business; HR plan = Functional","Exit Real Estate = Functional; Cloud focus = Corporate; HR plan = Business","All three decisions are at Corporate level"],
+            correct: 1,
+            explanation: "Exit Real Estate & invest in IT = Corporate Level (Board/top management, affecting entire org). Cloud computing focus = Business Level (IT Division SBU strategy). HR talent plan = Functional Level (HR department strategy)." }
+        ]
+      }
+    },
+
+    // ═══════════════════════════════════════════════════════
+    // CHAPTER 2: Strategic Analysis — External Environment
+    // ═══════════════════════════════════════════════════════
+    {
+      id: 2,
+      title: "Strategic Analysis: External Environment",
+      subtitle: "Understanding the World Outside",
+      icon: "🌍",
+      xpReward: 250,
+      missions: [
+        {
+          id: "2-1",
+          title: "Strategic Analysis & Business Environment",
+          content: {
+            explain: {
+              title: "What is Strategic Analysis?",
+              body: `<strong>Strategic Analysis</strong> is the process of compiling information about <em>internal and external environments</em> to assess possibilities while formulating strategic objectives.
+
+<div class="highlight">Think of it as a business's <strong>diagnostic scan</strong> — like how a doctor analyses blood reports before prescribing medicine. You analyse before you strategise.</div>
+
+<strong>Business Environment</strong> = All external factors that weigh in the minds of managers. Like layers of atmosphere surrounding the earth, the business environment has layers:
+<ul class="bullet-list">
+  <li>International layer (outermost)</li>
+  <li>National/Domestic layer</li>
+  <li>Industry/Competitive forces</li>
+  <li>Firm's stakeholders</li>
+  <li>Firm's Internal Environment (innermost)</li>
+</ul>
+
+<strong>Two types of environment:</strong>
+<ul class="bullet-list">
+  <li><strong>Micro (Internal):</strong> Factors within the firm's control</li>
+  <li><strong>Macro (External):</strong> Factors outside the firm's control</li>
+</ul>`
+            },
+            icai: {
+              title: "ICAI: Issues in Strategic Analysis",
+              body: `<strong>Three key issues in Strategic Analysis:</strong>
+
+<div class="highlight">1. <strong>Strategy evolves over time</strong> — A current strategy is the result of several small choices taken over a long period. Management updates strategy when results become clear.<br>
+2. <strong>Balance of external and internal factors</strong> — No perfect fit is possible; management must balance opportunities with constraints.<br>
+3. <strong>Risk</strong> — Strategic risk arises from imbalances. Two types:<br>
+&nbsp;&nbsp;• External risk: Inconsistency between strategy and environmental forces<br>
+&nbsp;&nbsp;• Internal risk: Organisational capacity unable to cope with strategic demands</div>
+
+<strong>Strategic Analysis Framework includes:</strong>
+External Analysis: Customer, Competitor, Market, Environmental
+Internal Analysis: Performance, Determinants (strengths/weaknesses)
+
+<strong>Analytical sequence:</strong> External & Internal Appraisal → Evaluation of alternatives → Choice of strategy`
+            },
+            example: {
+              title: "Example of Strategic Risk",
+              body: `<strong>External Risk Example — Airline Industry 2020:</strong>
+Airlines had grand strategies for expansion in 2019. COVID-19 (external environmental change) completely invalidated these strategies. External risk: the environment changed and made the strategy obsolete.
+
+<strong>Internal Risk Example — HMT Watches:</strong>
+HMT had a strategy to remain the mass-market watch leader. But its internal manufacturing capacity was old (inconsistency with strategic demands for modern designs). Internal risk materialised → HMT shut down.
+
+<strong>Balance Example:</strong>
+A startup wants to enter 5 cities simultaneously (opportunity). But its funding only allows 2 cities (constraint). Strategic analysis helps balance this conflict.`
+            },
+            mnemonic: {
+              word: "EIB",
+              expand: `Strategic Analysis has <strong>E</strong>xternal + <strong>I</strong>nternal + <strong>B</strong>alance
+
+Strategic Risk types: External (environmental mismatch) + Internal (capacity mismatch)
+
+Analytical sequence: <strong>A</strong>ppraise → <strong>E</strong>valuate → <strong>C</strong>hoose = "Always Evaluate Choices"`
+            },
+            revision: {
+              title: "Quick Revision",
+              body: `<ul class="bullet-list">
+  <li>Strategic Analysis = compiling info on internal + external environment</li>
+  <li>Business environment = external factors around a business</li>
+  <li>Macro = outside firm control; Micro = within firm</li>
+  <li>Three issues: Strategy evolves, Balance needed, Risk exists</li>
+  <li>Strategic Risk: External (env. mismatch) + Internal (capacity mismatch)</li>
+  <li>Analytical sequence: Appraise → Evaluate alternatives → Choose strategy</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Confusing Micro and Macro environment — Micro includes suppliers and customers (directly interact with firm); Macro = PESTLE factors</li>
+  <li>❌ Saying environmental analysis is one-time — it's continuous</li>
+  <li>❌ Mixing external risk (environmental) with internal risk (capacity) in exam answers</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "Environmental analysis is best described as:",
+              opts: ["A one-time process done before launching a business","A continuous process of monitoring external and internal factors to determine opportunities and threats","Only studying competitor actions","Only studying macroeconomic factors"],
+              correct: 1,
+              explanation: "Environmental analysis is a continuous process of monitoring economic, legal, market, technological, geographic, and social settings to identify opportunities and threats." },
+            { type: "tf", points: 5,
+              q: "Strategic risk is only external in nature.",
+              correct: false,
+              explanation: "FALSE. Strategic risk has two types: External (mismatch between strategy and environmental forces) AND Internal (organisational capacity unable to cope with strategic demands)." },
+            { type: "mcq", difficulty: "hard", points: 15,
+              q: "The analytical sequence of strategic analysis is:",
+              opts: ["Choose strategy → Appraise → Evaluate","Appraise environment → Evaluate alternatives → Choose strategy","Implement → Evaluate → Choose","Identify weakness → Build strength → Choose strategy"],
+              correct: 1,
+              explanation: "The correct sequence is: (1) Appraise external & internal situation, (2) Evaluate strategic alternatives, (3) Choose the best strategy. This is the foundation of strategic decision-making." },
+            { type: "fill", points: 8,
+              q: "Strategic analysis involves two important situational considerations: industry and competitive conditions, and an organisation's own __________ and resources.",
+              correct: ["capabilities","Capabilities"],
+              explanation: "The two important situational considerations are: (1) Industry and competitive conditions, and (2) An organisation's own capabilities, resources, internal strengths, weaknesses, and market position." }
+          ]
+        },
+
+        {
+          id: "2-2",
+          title: "PESTLE Analysis",
+          content: {
+            explain: {
+              title: "PESTLE — Analysing the Macro Environment",
+              body: `<strong>PESTLE</strong> is a framework for analysing the <em>macro (external) environment</em> of a business.
+
+<div class="highlight">PESTLE stands for:<br>
+<strong>P</strong>olitical · <strong>E</strong>conomic · <strong>S</strong>ocial · <strong>T</strong>echnological · <strong>L</strong>egal · <strong>E</strong>cological</div>
+
+<ul class="bullet-list">
+  <li><strong>Political:</strong> Government policies, stability, tax rules, trade restrictions, tariffs</li>
+  <li><strong>Economic:</strong> GDP growth, inflation, interest rates, exchange rates, consumer spending</li>
+  <li><strong>Social:</strong> Demographics, lifestyle, culture, health consciousness, education levels</li>
+  <li><strong>Technological:</strong> Innovation, automation, R&D, digital transformation, cyber risks</li>
+  <li><strong>Legal:</strong> Labour laws, consumer protection, competition laws, intellectual property</li>
+  <li><strong>Ecological:</strong> Climate change, sustainability, environmental regulations, carbon footprint</li>
+</ul>
+
+PESTLE helps identify <strong>Opportunities and Threats</strong> from the external environment.`
+            },
+            icai: {
+              title: "ICAI Application of PESTLE",
+              body: `<strong>PESTLE is a tool, not just a list</strong> — it helps strategists <em>systematically</em> scan the macro environment.
+
+<strong>Key ICAI points:</strong>
+<ul class="bullet-list">
+  <li>PESTLE identifies MACRO environment factors (outside firm's control)</li>
+  <li>Elements of Macro Environment covered in PESTLE: Political, Economic, Social, Technological, Legal, Ecological</li>
+  <li>Different from Porter's Five Forces (which covers industry/competitive environment)</li>
+  <li>PESTLE + Internal Analysis → SWOT Analysis</li>
+</ul>
+
+<strong>ICAI Case Example Pattern:</strong>
+"ABC Corp is planning to expand to a new market. Using PESTLE, analyse the macro environment."
+<em>For each factor, you must identify specific opportunities OR threats relevant to the case.</em>
+
+<strong>Internationalisation:</strong> When businesses go global, they face additional PESTLE factors at the International level — different political systems, cultural norms, economic conditions.`
+            },
+            example: {
+              title: "PESTLE for Electric Vehicles in India",
+              body: `<ul class="bullet-list">
+  <li><strong>Political:</strong> Government's FAME scheme, production-linked incentives for EV makers (Opportunity)</li>
+  <li><strong>Economic:</strong> Rising fuel prices make EVs economically attractive; but high interest rates increase loan costs (Mixed)</li>
+  <li><strong>Social:</strong> Growing environment consciousness; but range anxiety and charging infrastructure concerns (Mixed)</li>
+  <li><strong>Technological:</strong> Rapid battery technology improvement; but charging infrastructure still developing (Mostly Opportunity)</li>
+  <li><strong>Legal:</strong> BS6 emission norms push consumers toward cleaner vehicles (Opportunity)</li>
+  <li><strong>Ecological:</strong> Climate change awareness drives EV adoption; extreme weather affects battery performance (Mixed)</li>
+</ul>
+
+<strong>Conclusion:</strong> Overall, the macro environment is MOSTLY FAVOURABLE for EV businesses in India.`
+            },
+            mnemonic: {
+              word: "PESTLE",
+              expand: `<strong>P</strong>olitical · <strong>E</strong>conomic · <strong>S</strong>ocial · <strong>T</strong>echnological · <strong>L</strong>egal · <strong>E</strong>cological
+
+"<em>People Everywhere Socialise Through Laptops Enthusiastically</em>"
+
+Or: "Petrol Engines Slow Transition; Law Encourages (EVs)" — linking it to a real context!`
+            },
+            revision: {
+              title: "Quick Revision",
+              body: `<ul class="bullet-list">
+  <li>PESTLE = Macro environment analysis tool</li>
+  <li>P = Political | E = Economic | S = Social | T = Technological | L = Legal | E = Ecological</li>
+  <li>Identifies Opportunities and Threats from macro environment</li>
+  <li>Different from Porter's Five Forces (industry analysis)</li>
+  <li>Used before SWOT analysis as input to identify O and T</li>
+  <li>International environment adds another layer of PESTLE factors</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Confusing PESTLE (macro) with Porter's Five Forces (industry) — completely different tools</li>
+  <li>❌ Writing PESTEL instead of PESTLE — both are used, but know both spellings</li>
+  <li>❌ Not linking each PESTLE factor to Opportunity OR Threat in exam answers — always classify!</li>
+  <li>❌ Forgetting Ecological as a separate factor — students often stop at Legal</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "PESTLE is used to analyse which type of environment?",
+              opts: ["Internal environment","Industry/competitive environment","Macro/external environment","Organisational culture"],
+              correct: 2,
+              explanation: "PESTLE analyses the MACRO (external) environment — factors outside the firm's control. It covers Political, Economic, Social, Technological, Legal, and Ecological factors." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "Rising fuel prices making electric vehicles more attractive is an example of which PESTLE factor?",
+              opts: ["Political","Economic","Technological","Ecological"],
+              correct: 1,
+              explanation: "Rising fuel prices are an ECONOMIC factor. They create an economic incentive for consumers to switch to electric vehicles, making this an opportunity for EV manufacturers." },
+            { type: "tf", points: 5,
+              q: "PESTLE and Porter's Five Forces analyse the same environment.",
+              correct: false,
+              explanation: "FALSE. PESTLE analyses the MACRO environment (broad external factors like political, economic, social). Porter's Five Forces analyses the INDUSTRY/COMPETITIVE environment (suppliers, buyers, competitors, etc.)." },
+            { type: "fill", points: 8,
+              q: "The 'E' in PESTLE that refers to environmental concerns like climate change is called __________ factor.",
+              correct: ["ecological","Ecological","Environmental","environmental"],
+              explanation: "The second 'E' in PESTLE stands for ECOLOGICAL (also sometimes called Environmental). It covers climate change, sustainability, environmental regulations, and carbon footprint." },
+            { type: "case", points: 20,
+              context: "HealthMax, a pharmaceutical company, is planning to launch a new affordable generic medicine in India. The government has just announced price controls on essential medicines. Meanwhile, a new AI-based drug discovery technology has emerged. The Indian population is increasingly health-conscious.",
+              q: "Which PESTLE factors are MOST RELEVANT for HealthMax's decision?",
+              opts: ["Only Ecological and Social","Political (price controls), Technological (AI drug discovery), Social (health consciousness)","Only Economic and Legal","Only Technological and Ecological"],
+              correct: 1,
+              explanation: "Government price controls = Political factor. AI drug discovery = Technological factor. Health-conscious population = Social factor. All three are directly relevant to HealthMax's strategy." }
+          ]
+        },
+
+        {
+          id: "2-3",
+          title: "Porter's Five Forces Model",
+          content: {
+            explain: {
+              title: "Porter's Five Forces — Industry Analysis",
+              body: `<strong>Porter's Five Forces</strong> (by Michael E. Porter) analyses the <em>competitive intensity</em> and <em>attractiveness</em> of an industry.
+
+<div class="highlight">The five forces determine how <strong>profitable</strong> an industry can be and how <strong>intense</strong> competition is.</div>
+
+<strong>The Five Forces:</strong>
+<ul class="bullet-list">
+  <li>⚔️ <strong>1. Rivalry Among Existing Firms:</strong> How intense is competition? (price wars, advertising battles)</li>
+  <li>🚪 <strong>2. Threat of New Entrants:</strong> How easy is it for new competitors to enter the industry?</li>
+  <li>🔄 <strong>3. Threat of Substitutes:</strong> Can customers switch to alternative products/services?</li>
+  <li>🏭 <strong>4. Bargaining Power of Suppliers:</strong> Can suppliers dictate prices and terms?</li>
+  <li>👥 <strong>5. Bargaining Power of Buyers:</strong> Can customers demand lower prices or better quality?</li>
+</ul>`
+            },
+            icai: {
+              title: "ICAI: Analysis of Each Force",
+              body: `<strong>Industry is ATTRACTIVE when ALL five forces are WEAK.</strong>
+<strong>Industry is UNATTRACTIVE when ALL five forces are STRONG.</strong>
+
+<strong>Factors increasing each force:</strong>
+
+<strong>Rivalry increases when:</strong> Many competitors, slow growth, high fixed costs, similar products, high exit barriers
+
+<strong>New Entrants threat increases when:</strong> Low capital requirement, easy access to distribution, no economies of scale needed, low switching costs for customers
+
+<strong>Substitutes threat increases when:</strong> Good substitutes available, low switching costs, attractive price-performance ratio of substitute
+
+<strong>Supplier power increases when:</strong> Few suppliers, unique products, high switching costs, supplier can integrate forward
+
+<strong>Buyer power increases when:</strong> Few large buyers, standard products, low switching costs, buyers can integrate backward, buyers are price-sensitive`
+            },
+            example: {
+              title: "Five Forces: Indian Airline Industry",
+              body: `<ul class="bullet-list">
+  <li><strong>Rivalry:</strong> HIGH — IndiGo, Air India, SpiceJet, Vistara all compete fiercely on price and routes</li>
+  <li><strong>New Entrants:</strong> MEDIUM — High capital needed (planes, slots) but Akasa Air entered recently</li>
+  <li><strong>Substitutes:</strong> HIGH — Trains (Rajdhani, Vande Bharat), buses for shorter routes</li>
+  <li><strong>Supplier Power:</strong> HIGH — Only Boeing and Airbus supply planes; fuel prices set by global markets</li>
+  <li><strong>Buyer Power:</strong> HIGH — Customers easily compare prices on apps, very price-sensitive, low loyalty</li>
+</ul>
+
+<strong>Conclusion:</strong> Indian airline industry has HIGH competition (4 of 5 forces are strong) → low profitability as an industry. This is why many airlines have struggled/shut down.`
+            },
+            mnemonic: {
+              word: "RNSSB",
+              expand: `<strong>R</strong>ivalry · <strong>N</strong>ew Entrants · <strong>S</strong>ubstitutes · <strong>S</strong>uppliers · <strong>B</strong>uyers
+
+"<em>Rivals Never Stop Selling Better</em>"
+
+Or draw the Porter's diagram: Rivalry in the centre, with the other 4 forces pointing inward like arrows. RSSBN clockwise starting from top.`
+            },
+            revision: {
+              title: "Quick Revision",
+              body: `<ul class="bullet-list">
+  <li>Five Forces: Rivalry, New Entrants, Substitutes, Suppliers, Buyers</li>
+  <li>ALL forces weak = attractive industry</li>
+  <li>ALL forces strong = unattractive industry</li>
+  <li>Rivalry = central force; 4 others feed into it</li>
+  <li>Used for INDUSTRY environment analysis (not macro)</li>
+  <li>Proposed by Michael E. Porter</li>
+  <li>Different from PESTLE (macro analysis)</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Confusing Porter's Five Forces with Porter's Generic Strategies — completely different frameworks!</li>
+  <li>❌ Saying all industries have the same level of all five forces</li>
+  <li>❌ Forgetting that WEAK forces = ATTRACTIVE industry (not the other way around)</li>
+  <li>❌ Listing 4 forces instead of 5 — students often forget one of the two bargaining powers</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "Porter's Five Forces model was proposed by:",
+              opts: ["Igor Ansoff","William F. Glueck","Michael E. Porter","Peter Drucker"],
+              correct: 2,
+              explanation: "Porter's Five Forces Model was proposed by Michael E. Porter. It is used for industry/competitive environment analysis." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "When ALL five forces are weak, the industry is:",
+              opts: ["Unattractive","Moderately attractive","Highly attractive","Declining"],
+              correct: 2,
+              explanation: "When all five competitive forces are WEAK, there is little competitive pressure, allowing firms to earn high profits. This makes the industry HIGHLY ATTRACTIVE for investment." },
+            { type: "tf", points: 5,
+              q: "Bargaining power of suppliers is one of Porter's Five Forces.",
+              correct: true,
+              explanation: "TRUE. Bargaining power of suppliers is one of the five forces. The five forces are: (1) Rivalry, (2) Threat of new entrants, (3) Threat of substitutes, (4) Bargaining power of suppliers, (5) Bargaining power of buyers." },
+            { type: "mcq", difficulty: "hard", points: 15,
+              q: "A firm finds that its customers can easily switch to competitors' products with no extra cost, and there are many price-conscious buyers. Which force is STRONG?",
+              opts: ["Threat of new entrants","Bargaining power of buyers","Bargaining power of suppliers","Threat of substitutes"],
+              correct: 1,
+              explanation: "Easy switching + price-conscious buyers + many buyers = HIGH bargaining power of BUYERS. Buyers can demand lower prices or better quality because they have the power to walk away easily." },
+            { type: "case", points: 20,
+              context: "StreamMax is a new OTT platform planning to launch in India. Netflix, Amazon Prime, Disney+ Hotstar, SonyLIV, ZEE5, and many regional platforms already exist. Setting up an OTT platform requires significant technology investment. Users can easily switch between platforms. Content creators (studios) are few and powerful. Millions of Indians subscribe to multiple OTT platforms.",
+              q: "Based on Porter's Five Forces, which combination BEST describes StreamMax's industry environment?",
+              opts: ["Low rivalry, low new entrant threat","High rivalry, high substitute threat, high supplier power — UNATTRACTIVE","Low supplier power, high buyer power — ATTRACTIVE","Only rivalry matters; others are irrelevant"],
+              correct: 1,
+              explanation: "High rivalry (many existing OTTs), High substitutes (users can switch easily), High supplier power (few studios with content), High buyer power (subscribers have many choices) = UNATTRACTIVE, highly competitive industry." }
+          ]
+        },
+
+        {
+          id: "2-4",
+          title: "Product Life Cycle & Value Chain Analysis",
+          content: {
+            explain: {
+              title: "Product Life Cycle (PLC)",
+              body: `The <strong>Product Life Cycle (PLC)</strong> describes the stages a product goes through from introduction to decline.
+
+<div class="highlight">Every product follows the same journey: Introduction → Growth → Maturity → Decline</div>
+
+<strong>4 Stages of PLC:</strong>
+<ul class="bullet-list">
+  <li>🚀 <strong>Introduction:</strong> Low sales, high costs, losses. Strategy: Market penetration, heavy promotion</li>
+  <li>📈 <strong>Growth:</strong> Sales rise rapidly, profits increase. Strategy: Expand distribution, build market share</li>
+  <li>📊 <strong>Maturity:</strong> Sales peak but growth slows. Strategy: Stability, product modification, cost efficiency</li>
+  <li>📉 <strong>Decline:</strong> Sales fall, profits shrink. Strategy: Retrenchment, harvest, or exit</li>
+</ul>
+
+<strong>Value Chain Analysis</strong> (Michael Porter): Analyses the series of activities a firm performs to create and deliver value to customers.
+
+<strong>Two types of activities:</strong>
+<ul class="bullet-list">
+  <li><strong>Primary activities:</strong> Inbound logistics, Operations, Outbound logistics, Marketing & Sales, Service</li>
+  <li><strong>Support activities:</strong> Firm infrastructure, HR management, Technology development, Procurement</li>
+</ul>`
+            },
+            icai: {
+              title: "ICAI: PLC and Strategy Connection",
+              body: `<strong>PLC and Strategies (from ICAI classification):</strong>
+<ul class="bullet-list">
+  <li><strong>Introduction Stage:</strong> Market Penetration Strategy</li>
+  <li><strong>Growth Stage:</strong> Growth/Expansion Strategy</li>
+  <li><strong>Maturity Stage:</strong> Stability Strategy</li>
+  <li><strong>Decline Stage:</strong> Retrenchment/Turnaround Strategy</li>
+</ul>
+
+<strong>Value Chain — Key ICAI Points:</strong>
+<ul class="bullet-list">
+  <li>Concept by Michael Porter (same as Five Forces)</li>
+  <li>Margin = Value created minus costs of performing value activities</li>
+  <li>Helps identify competitive advantage through either cost reduction or differentiation</li>
+  <li>Links with Porter's Generic Strategies: Cost Leadership (reduce primary activity costs) or Differentiation (add value in primary/support activities)</li>
+</ul>`
+            },
+            example: {
+              title: "Examples",
+              body: `<strong>PLC Example — Smartphones:</strong>
+<ul class="bullet-list">
+  <li>2007: Introduction (iPhone) — few buyers, high price, heavy marketing</li>
+  <li>2010-2015: Growth — explosion of Android, rapid adoption worldwide</li>
+  <li>2018-present: Maturity — incremental improvements, market saturation</li>
+  <li>Feature phones: Decline — being replaced by smartphones</li>
+</ul>
+
+<strong>Value Chain Example — Amul:</strong>
+<ul class="bullet-list">
+  <li>Primary: Milk collection (inbound) → Pasteurisation (operations) → Refrigerated trucks (outbound) → Amul ads/Amul girl (marketing) → Consumer helpline (service)</li>
+  <li>Support: Village co-op infrastructure (firm infra) → Dairy farmer training (HR) → Chilling technology (technology) → Cattle feed procurement (procurement)</li>
+</ul>`
+            },
+            mnemonic: {
+              word: "IGMD",
+              expand: `PLC Stages: <strong>I</strong>ntroduction · <strong>G</strong>rowth · <strong>M</strong>aturity · <strong>D</strong>ecline
+
+"<em>I Grow Maturely, then Decline</em>"
+
+Value Chain Primary Activities: "<em>I Only Operate My Service</em>" = Inbound · Operations · Outbound · Marketing&Sales · Service`
+            },
+            revision: {
+              title: "Quick Revision",
+              body: `<ul class="bullet-list">
+  <li>PLC: Introduction → Growth → Maturity → Decline</li>
+  <li>Introduction = Market penetration; Growth = Expansion; Maturity = Stability; Decline = Retrenchment</li>
+  <li>Value Chain = Michael Porter concept</li>
+  <li>Primary: Inbound Logistics, Operations, Outbound Logistics, Marketing, Service</li>
+  <li>Support: Infrastructure, HRM, Technology, Procurement</li>
+  <li>Value Chain identifies competitive advantage through cost or differentiation</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Forgetting there are FIVE primary activities (students often list 4)</li>
+  <li>❌ Confusing PLC stages with BCG matrix quadrants — completely different frameworks</li>
+  <li>❌ Not linking PLC stage to the appropriate strategy in exam answers</li>
+  <li>❌ Saying Value Chain is only about primary activities — support activities are equally important</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "During which stage of PLC should a firm generally adopt a 'Stability Strategy'?",
+              opts: ["Introduction","Growth","Maturity","Decline"],
+              correct: 2,
+              explanation: "Maturity stage is linked with Stability Strategy. Sales peak but growth slows during maturity, so firms consolidate their position rather than aggressively expanding." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "Which of the following is a SUPPORT activity in Porter's Value Chain?",
+              opts: ["Inbound Logistics","Operations","Human Resource Management","Marketing & Sales"],
+              correct: 2,
+              explanation: "Human Resource Management is a SUPPORT activity in the Value Chain. The primary activities are: Inbound Logistics, Operations, Outbound Logistics, Marketing & Sales, and Service." },
+            { type: "tf", points: 5,
+              q: "Value Chain Analysis was developed by Igor Ansoff.",
+              correct: false,
+              explanation: "FALSE. Value Chain Analysis was developed by MICHAEL PORTER (same person who created the Five Forces model). Ansoff is known for the Product-Market Growth Matrix." },
+            { type: "fill", points: 8,
+              q: "The first stage of the Product Life Cycle is __________, which is characterised by low sales and high costs.",
+              correct: ["introduction","Introduction"],
+              explanation: "The INTRODUCTION stage is the first stage of PLC, characterised by low sales, high promotional costs, and often losses. The strategy used is market penetration." }
+          ]
+        }
+      ], // end chapter 2 missions
+
+      boss: {
+        name: "The External Environment Overlord",
+        description: "Master of PESTLE, Porter's Five Forces, PLC and Value Chain. You must demonstrate ICAI-level understanding to pass!",
+        questions: [
+          { type: "mcq", difficulty: "boss", points: 25,
+            q: "Which of the following correctly differentiates PESTLE from Porter's Five Forces?",
+            opts: ["PESTLE analyses industry forces; Porter's Five Forces analyses macro environment","PESTLE analyses macro external environment; Porter's Five Forces analyses industry competitive environment","Both analyse the same external environment","PESTLE is an internal analysis tool"],
+            correct: 1,
+            explanation: "PESTLE = Macro environment (Political, Economic, Social, Technological, Legal, Ecological — broad external factors). Porter's Five Forces = Industry/Competitive environment (Rivalry, Entrants, Substitutes, Suppliers, Buyers)." },
+          { type: "case", points: 35,
+            context: "IndiaRide, a cab aggregator, faces: (a) Ola and Uber as direct competitors, (b) Metro expansion in cities reducing cab demand, (c) Several new startups trying to enter the cab market with EV fleets, (d) Vehicle manufacturers increasing prices of CNG cabs, (e) Corporate clients threatening to build their own in-house transport fleet.",
+            q: "Map each situation (a to e) to the correct Porter's Five Force:",
+            opts: ["a=Rivalry, b=Substitutes, c=New Entrants, d=Supplier Power, e=Buyer Power","a=Substitutes, b=Rivalry, c=New Entrants, d=Buyer Power, e=Supplier Power","a=New Entrants, b=Substitutes, c=Rivalry, d=Supplier Power, e=Buyer Power","a=Rivalry, b=Substitutes, c=Supplier Power, d=New Entrants, e=Buyer Power"],
+            correct: 0,
+            explanation: "a=Rivalry (Ola/Uber are existing competitors); b=Substitutes (Metro is an alternative transportation); c=Threat of New Entrants (new startups entering); d=Supplier Power (vehicle manufacturers raising prices); e=Buyer Power (corporate clients threatening backward integration)." },
+          { type: "tf", points: 20,
+            q: "A product in the Maturity stage of PLC should adopt a Growth/Expansion strategy.",
+            correct: false,
+            explanation: "FALSE. Maturity stage → Stability Strategy. Growth/Expansion Strategy is for the Growth stage. Decline stage → Retrenchment/Turnaround Strategy." },
+          { type: "mcq", difficulty: "boss", points: 30,
+            q: "A firm's 'Margin' in Value Chain Analysis represents:",
+            opts: ["Total revenue of the firm","Value created minus the costs of performing value activities","Profit after tax","Net sales minus cost of goods sold only"],
+            correct: 1,
+            explanation: "In Porter's Value Chain, MARGIN = Value created for the customer minus the total costs of performing all value chain activities (both primary and support). It represents the firm's competitive advantage and profit potential." }
+        ]
+      }
+    },
+
+    // ═══════════════════════════════════════════════════════
+    // CHAPTER 3: Strategic Analysis — Internal Environment
+    // ═══════════════════════════════════════════════════════
+    {
+      id: 3,
+      title: "Strategic Analysis: Internal Environment",
+      subtitle: "Knowing Your Own Strengths",
+      icon: "🔬",
+      xpReward: 280,
+      missions: [
+        {
+          id: "3-1",
+          title: "Key Stakeholders & Mendelow's Matrix",
+          content: {
+            explain: {
+              title: "Who Are Stakeholders?",
+              body: `<strong>Stakeholders</strong> are any groups or individuals who have an interest in, or are affected by, the activities of the organisation.
+
+<strong>Types of Stakeholders:</strong>
+<ul class="bullet-list">
+  <li><strong>Internal:</strong> Employees, management, shareholders/owners</li>
+  <li><strong>External:</strong> Customers, suppliers, government, community, creditors, competitors</li>
+</ul>
+
+<div class="highlight"><strong>Mendelow's Matrix</strong> is a tool to categorise stakeholders based on two dimensions:<br>
+• <strong>Power</strong> (their ability to influence the organisation)<br>
+• <strong>Interest</strong> (their level of interest in what the organisation does)</div>
+
+<strong>The Four Quadrants:</strong>
+<ul class="bullet-list">
+  <li><strong>High Power + High Interest = KEY PLAYERS</strong> → Manage closely (e.g., major shareholders, key customers)</li>
+  <li><strong>High Power + Low Interest = KEEP SATISFIED</strong> → Keep happy but don't overload with info (e.g., government, banks)</li>
+  <li><strong>Low Power + High Interest = KEEP INFORMED</strong> → Update regularly (e.g., employees, community groups)</li>
+  <li><strong>Low Power + Low Interest = LOW PRIORITY</strong> → Minimal effort (e.g., general public)</li>
+</ul>`
+            },
+            icai: {
+              title: "ICAI: Mendelow's Matrix Application",
+              body: `<strong>Why does stakeholder analysis matter for strategy?</strong>
+
+Different stakeholders have different goals. A firm cannot satisfy ALL stakeholders equally. Mendelow's Matrix helps PRIORITISE stakeholder management.
+
+<strong>Strategic implications:</strong>
+<ul class="bullet-list">
+  <li><strong>Key Players</strong> must be central to strategic decisions — their support or opposition can make/break a strategy</li>
+  <li><strong>Keep Satisfied</strong> — if their interest rises, they become Key Players (dangerous if ignored)</li>
+  <li><strong>Keep Informed</strong> — if their power increases (e.g., employees unionise), they become Key Players</li>
+  <li><strong>Low Priority</strong> — monitor but minimal resources spent</li>
+</ul>
+
+<strong>Example scenario (ICAI style):</strong> A company planning to expand into a new state must consider:
+Key Players = State government (high power, high interest in tax revenue and employment)
+Keep Satisfied = National government (high power but lower specific interest)
+Keep Informed = Local community (high interest in employment, low power)
+Low Priority = General public in other states`
+            },
+            example: {
+              title: "Mendelow's Matrix — Tata Nano Example",
+              body: `When Tata planned to build the Nano factory in Singur, West Bengal:
+
+<ul class="bullet-list">
+  <li><strong>Key Players:</strong> State government (land acquisition needed), major investors (funding)</li>
+  <li><strong>Keep Satisfied:</strong> Central government (policy approvals)</li>
+  <li><strong>Keep Informed:</strong> Local farmers displaced by factory (directly affected), workers (employment)</li>
+  <li><strong>Low Priority:</strong> General public nationwide</li>
+</ul>
+
+<strong>What went wrong:</strong> Tata underestimated the displaced farmers — their power INCREASED when political parties backed them. Low Priority became Key Players overnight. Tata had to move the factory to Gujarat (Sanand).
+
+<em>Lesson: Stakeholder analysis must be DYNAMIC — power and interest can shift.</em>`
+            },
+            mnemonic: {
+              word: "KKKL",
+              expand: `Mendelow's Matrix quadrants:<br>
+<strong>K</strong>ey Players (High Power, High Interest)<br>
+<strong>K</strong>eep Satisfied (High Power, Low Interest)<br>
+<strong>K</strong>eep Informed (Low Power, High Interest)<br>
+<strong>L</strong>ow Priority (Low Power, Low Interest)<br>
+
+"<em>Kingly Kites Keep Low</em>" — remember Power is on Y-axis, Interest on X-axis`
+            },
+            revision: {
+              title: "Quick Revision",
+              body: `<ul class="bullet-list">
+  <li>Stakeholders = anyone affected by or affecting the organisation</li>
+  <li>Mendelow's Matrix: Power (Y) vs Interest (X)</li>
+  <li>High Power + High Interest = Key Players → Manage Closely</li>
+  <li>High Power + Low Interest = Keep Satisfied</li>
+  <li>Low Power + High Interest = Keep Informed</li>
+  <li>Low Power + Low Interest = Low Priority</li>
+  <li>Matrix is DYNAMIC — stakeholder positions can change</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Mixing up the quadrants — specifically confusing "Keep Satisfied" (High Power, Low Interest) with "Keep Informed" (Low Power, High Interest)</li>
+  <li>❌ Thinking the matrix is static — stakeholder power and interest change over time</li>
+  <li>❌ Not applying the matrix to specific stakeholders in case questions — always identify and classify</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "In Mendelow's Matrix, stakeholders with HIGH POWER and LOW INTEREST should be:",
+              opts: ["Managed closely","Kept satisfied","Kept informed","Given low priority"],
+              correct: 1,
+              explanation: "High Power + Low Interest = KEEP SATISFIED. These stakeholders have the power to impact your strategy but aren't highly interested in the details. Keep them happy to prevent them from becoming opponents." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "Mendelow's Matrix classifies stakeholders based on:",
+              opts: ["Their financial investment and time commitment","Their power and level of interest","Their age and education","Their geographic location and culture"],
+              correct: 1,
+              explanation: "Mendelow's Matrix uses two dimensions: (1) Power — their ability to influence the organisation, and (2) Interest — their level of interest in what the organisation does." },
+            { type: "tf", points: 5,
+              q: "Key Players in Mendelow's Matrix have high power and high interest.",
+              correct: true,
+              explanation: "TRUE. Key Players = High Power + High Interest. These stakeholders must be managed closely as they have both the ability and the desire to significantly influence the organisation's strategy." },
+            { type: "case", points: 20,
+              context: "BuildCorp Ltd. is constructing a new cement plant. Consider these stakeholders: (a) Local MLA who controls land permits and is vocal about the project (b) National bank funding the project (c) Workers who will be employed in the plant (d) Citizens in another city with no direct connection to the plant",
+              q: "How would you classify each stakeholder in Mendelow's Matrix?",
+              opts: ["a=Low Priority, b=Key Player, c=Keep Satisfied, d=Keep Informed","a=Key Player, b=Keep Satisfied, c=Keep Informed, d=Low Priority","a=Keep Informed, b=Key Player, c=Keep Satisfied, d=Low Priority","a=Key Player, b=Keep Informed, c=Low Priority, d=Keep Satisfied"],
+              correct: 1,
+              explanation: "MLA = High Power (controls permits) + High Interest (vocal) = KEY PLAYER. Bank = High Power (funding) + Low Interest (just wants loan repaid) = KEEP SATISFIED. Workers = Low Power + High Interest (employment matters to them) = KEEP INFORMED. Citizens in another city = Low Power + Low Interest = LOW PRIORITY." }
+          ]
+        },
+
+        {
+          id: "3-2",
+          title: "SWOT Analysis & Core Competency",
+          content: {
+            explain: {
+              title: "SWOT Analysis",
+              body: `<strong>SWOT Analysis</strong> combines internal and external analysis to provide a complete strategic picture.
+
+<div class="highlight">SWOT = <strong>S</strong>trengths · <strong>W</strong>eaknesses · <strong>O</strong>pportunities · <strong>T</strong>hreats<br>
+S & W = Internal factors (within firm's control)<br>
+O & T = External factors (from environment)</div>
+
+<strong>Strengths:</strong> Internal capabilities that give competitive advantage (skilled workforce, strong brand, patents)
+<strong>Weaknesses:</strong> Internal limitations that hinder performance (high costs, poor distribution, weak brand)
+<strong>Opportunities:</strong> External factors that the firm can exploit (growing market, new technology, deregulation)
+<strong>Threats:</strong> External factors that may harm the firm (new competitors, economic downturn, regulation)
+
+<strong>Core Competency</strong> is a unique combination of skills, knowledge, and resources that:
+<ul class="bullet-list">
+  <li>Provides superior value to customers</li>
+  <li>Is difficult for competitors to imitate</li>
+  <li>Can be applied across multiple products/markets</li>
+</ul>`
+            },
+            icai: {
+              title: "ICAI: SWOT Application & Core Competency Criteria",
+              body: `<strong>SWOT — ICAI Key Points:</strong>
+<ul class="bullet-list">
+  <li>SWOT is used for BOTH internal and external environment analysis simultaneously</li>
+  <li>Primary objective: Help organisations develop strategic plans by identifying key factors</li>
+  <li>Should be done BEFORE all major company actions</li>
+  <li>Since its creation, SWOT has been the most widely used business tool</li>
+</ul>
+
+<strong>ICAI Criteria for Core Competencies (CC):</strong>
+<ul class="bullet-list">
+  <li>🏆 Provides significant value to customers</li>
+  <li>🔒 Difficult for competitors to imitate (hard to copy)</li>
+  <li>📦 Can be leveraged across multiple products and markets</li>
+</ul>
+
+<div class="highlight"><strong>Porter's Generic Strategies:</strong> Based on INTERNAL strengths + external analysis:<br>
+1. Cost Leadership — be the lowest cost producer<br>
+2. Differentiation — offer unique valued product<br>
+3. Focus Cost Leadership — low cost in a niche<br>
+4. Focus Differentiation — unique in a niche</div>`
+            },
+            example: {
+              title: "SWOT: Indian IT Company",
+              body: `<strong>SWOT Analysis — TCS:</strong>
+<ul class="bullet-list">
+  <li><strong>Strengths:</strong> Huge talent pool (600,000+ employees), Tata brand trust, global delivery model, ISO certifications</li>
+  <li><strong>Weaknesses:</strong> Heavily dependent on US market, high employee attrition in junior levels, commoditisation of services</li>
+  <li><strong>Opportunities:</strong> AI/ML boom, cloud migration demand, digital transformation wave globally</li>
+  <li><strong>Threats:</strong> US H1-B visa restrictions, competition from Infosys/Wipro/Accenture, automation replacing junior developers</li>
+</ul>
+
+<strong>TCS Core Competency:</strong> Its global delivery model (combining quality offshore delivery with onsite client presence) — difficult to replicate at scale, provides superior value.`
+            },
+            mnemonic: {
+              word: "SWOT",
+              expand: `Everyone knows SWOT — but remember the pairs:<br>
+<strong>SW = Internal</strong> (you control these)<br>
+<strong>OT = External</strong> (environment provides these)<br>
+
+Core Competency 3 criteria: <strong>VIM</strong> = <strong>V</strong>alue to customers · <strong>I</strong>mitation difficult · <strong>M</strong>ultiple markets
+
+"<em>Vibrant Ideas Matter</em>" — if a capability is VIM, it's a Core Competency!`
+            },
+            revision: {
+              title: "Quick Revision",
+              body: `<ul class="bullet-list">
+  <li>SWOT = Strengths + Weaknesses (internal) + Opportunities + Threats (external)</li>
+  <li>SWOT used for BOTH internal and external analysis</li>
+  <li>Most widely used business strategy tool</li>
+  <li>Core Competency = VIM: Value, Imitation difficult, Multiple markets</li>
+  <li>Porter's Generic Strategies: Cost Leadership, Differentiation, Focus Cost, Focus Differentiation</li>
+  <li>Competitive advantage = something unique and valued by customer</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Writing Strengths as external factors — S&W are ALWAYS internal</li>
+  <li>❌ Writing Opportunities as internal — O&T are ALWAYS external</li>
+  <li>❌ Confusing core competency with any strength — CC must meet ALL three VIM criteria</li>
+  <li>❌ Saying Porter's Generic Strategies = Porter's Five Forces — completely different!</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "In SWOT Analysis, 'Opportunities' and 'Threats' are:",
+              opts: ["Internal factors","External factors","Both internal and external","Functional-level factors"],
+              correct: 1,
+              explanation: "Opportunities and Threats are EXTERNAL factors (from the environment, outside the firm's control). Strengths and Weaknesses are INTERNAL factors (within the firm's control)." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "Which of the following is NOT a criterion for Core Competency according to ICAI?",
+              opts: ["Provides significant value to customers","Difficult for competitors to imitate","Can be used across multiple markets","Requires the highest financial investment"],
+              correct: 3,
+              explanation: "Core Competency criteria are: (1) Value to customers, (2) Difficult to imitate, (3) Can be leveraged across multiple markets. Financial investment is NOT a criterion — a competency can be built without necessarily being the most expensive." },
+            { type: "tf", points: 5,
+              q: "Porter's Generic Strategies and Porter's Five Forces are the same framework.",
+              correct: false,
+              explanation: "FALSE. Porter's Five Forces = Industry competitive environment analysis. Porter's Generic Strategies = How a firm should compete (Cost Leadership, Differentiation, Focus). These are completely different frameworks, both by Michael Porter." },
+            { type: "fill", points: 8,
+              q: "Porter's Generic Strategies include Cost Leadership, Differentiation, Focus Cost Leadership, and Focus __________.",
+              correct: ["differentiation","Differentiation"],
+              explanation: "The four Porter's Generic Strategies are: (1) Cost Leadership, (2) Differentiation, (3) Focus Cost Leadership, (4) Focus Differentiation. The Focus strategies are niche-market versions of the broader Cost Leadership and Differentiation strategies." },
+            { type: "case", points: 20,
+              context: "SpiceMaster, an Indian spice brand, has a secret proprietary blend of spices developed over 50 years. This blend is protected by trade secret. Customers consistently choose SpiceMaster over cheaper alternatives because of the unique taste. The same blend is used in their restaurant spices, home cooking range, and export business.",
+              q: "SpiceMaster's proprietary spice blend is a Core Competency because:",
+              opts: ["It is the most expensive product in the market","It is old and traditional","It provides value to customers, is difficult to imitate (trade secret), and can be applied across multiple products/markets","It has been in business for 50 years"],
+              correct: 2,
+              explanation: "The spice blend meets ALL three VIM criteria for Core Competency: Value (customers choose it over cheaper alternatives), Imitation difficult (trade secret, 50 years of development), Multiple markets (home cooking, restaurant, export)." }
+          ]
+        }
+      ], // end ch3 missions
+
+      boss: {
+        name: "The Internal Strategy Oracle",
+        description: "The Oracle tests your understanding of stakeholder management, SWOT, Core Competency, and Porter's Generic Strategies. ICAI-level questions await!",
+        questions: [
+          { type: "mcq", difficulty: "boss", points: 25,
+            q: "A company's major investor holds 35% shares and actively monitors all strategic decisions. In Mendelow's Matrix, this investor is a:",
+            opts: ["Low Priority","Keep Informed","Keep Satisfied","Key Player"],
+            correct: 3,
+            explanation: "High Power (35% shareholding, ability to influence decisions) + High Interest (actively monitors strategic decisions) = KEY PLAYER. Must be managed closely." },
+          { type: "case", points: 35,
+            context: "ZoomFast, a logistics startup, has built a proprietary AI algorithm that predicts traffic patterns and optimises delivery routes. This reduces delivery time by 40% compared to competitors. The algorithm took 5 years to develop and is protected by patents. ZoomFast uses this across parcel delivery, food delivery, and medicine delivery services.",
+            q: "Evaluate whether ZoomFast's AI algorithm qualifies as a Core Competency. Which Porter's Generic Strategy does it support?",
+            opts: ["Yes, it's CC because it's patented only; supports Cost Leadership","Yes, it's CC — meets all VIM criteria (value to customers, hard to imitate due to patents, multiple markets); supports Differentiation Strategy","No, it's not CC because startups can't have core competencies","No, it's not CC because it's technology-based"],
+            correct: 1,
+            explanation: "ZoomFast's algorithm IS a Core Competency: Value (40% faster delivery = customer value), Imitation difficult (5 years + patents), Multiple markets (parcel, food, medicine). It supports DIFFERENTIATION strategy — offering a unique, valued service (faster delivery) that competitors cannot easily match." },
+          { type: "tf", points: 20,
+            q: "Weaknesses in SWOT Analysis represent external threats to the organisation.",
+            correct: false,
+            explanation: "FALSE. Weaknesses are INTERNAL factors (within the firm's control). External threats are captured under 'Threats' in SWOT. Remember: S & W = Internal; O & T = External." },
+          { type: "mcq", difficulty: "boss", points: 30,
+            q: "Which of the following BEST describes the relationship between SWOT Analysis and Porter's Generic Strategies?",
+            opts: ["SWOT and Porter's Generic Strategies are the same tool","SWOT identifies strengths/weaknesses/opportunities/threats; Porter's Generic Strategies help decide HOW to compete based on competitive advantage identified through analysis","Porter's Generic Strategies replace SWOT in modern strategy","SWOT is only for small businesses; Porter's is for large corporates"],
+            correct: 1,
+            explanation: "SWOT identifies what the firm has (S&W) and what the environment offers (O&T). Porter's Generic Strategies then guide HOW to compete — use cost advantage (Cost Leadership) or uniqueness advantage (Differentiation) in broad or narrow markets." }
+        ]
+      }
+    },
+
+    // ═══════════════════════════════════════════════════════
+    // CHAPTER 4: Strategic Choices
+    // ═══════════════════════════════════════════════════════
+    {
+      id: 4,
+      title: "Strategic Choices",
+      subtitle: "Grand Strategies & Portfolio Models",
+      icon: "⚔️",
+      xpReward: 300,
+      missions: [
+        {
+          id: "4-1",
+          title: "Grand Strategies: Stability, Growth & Retrenchment",
+          content: {
+            explain: {
+              title: "The Four Grand Strategies",
+              body: `<strong>Grand Strategies</strong> (also called Directional Strategies) are the broad, overall directions an organisation takes.
+
+<div class="highlight">William F. Glueck & Lawrence R. Jauch identified FOUR Grand Strategies:<br>
+1. <strong>Stability</strong> | 2. <strong>Growth/Expansion</strong> | 3. <strong>Retrenchment</strong> | 4. <strong>Combination</strong></div>
+
+<strong>1. Stability Strategy:</strong>
+Continues serving in the same/similar markets with same/similar products. Typical for products at MATURITY stage.
+<em>Characteristics:</em> No major change in goals, no risk-taking, consolidation of existing position.
+
+<strong>2. Growth/Expansion Strategy:</strong>
+Redefines business by enlarging scope and substantially increasing investment.
+<em>Types:</em> Intensification (more of same), Diversification (new products/markets), Integration (vertical/horizontal)
+
+<strong>3. Retrenchment/Strategic Exits:</strong>
+Substantially reduces scope of activity. Used when performance is declining.
+<em>Types:</em> Turnaround (reverse decline), Divestment (sell units), Liquidation (shut down)
+
+<strong>4. Combination Strategy:</strong>
+Simultaneously pursues two or more of the above grand strategies for different SBUs.`
+            },
+            icai: {
+              title: "ICAI: Detailed Strategy Characteristics",
+              body: `<strong>Stability Strategy — when pursued:</strong>
+<ul class="bullet-list">
+  <li>Continues in same markets with same products</li>
+  <li>Product at maturity stage of PLC</li>
+  <li>Firm has sufficient market share but needs to retain it</li>
+</ul>
+
+<strong>Growth Strategy — characteristics:</strong>
+<ul class="bullet-list">
+  <li>Redefinition of business (new scope)</li>
+  <li>Substantial increase in investment</li>
+  <li>Opposite of stability — higher risk, higher potential reward</li>
+  <li>Types: Intensification (penetrate existing markets or develop new) and Diversification (related or unrelated)</li>
+</ul>
+
+<strong>Retrenchment — 3 Types (in order of severity):</strong>
+<ul class="bullet-list">
+  <li><strong>Turnaround:</strong> Reverse the decline (least severe, try to fix problems)</li>
+  <li><strong>Divestment:</strong> Sell off loss-making units/divisions</li>
+  <li><strong>Liquidation:</strong> Complete shutdown (most severe, last resort)</li>
+</ul>
+
+<strong>Exam Tip:</strong> "Which strategy is implemented AFTER the failure of turnaround strategy?" → <strong>Divestment</strong>. After divestment failure → <strong>Liquidation</strong>.`
+            },
+            example: {
+              title: "Real-World Examples",
+              body: `<strong>Stability:</strong> Colgate-Palmolive — for decades, focused on toothpaste in India. Same product, same market, consolidating position.
+
+<strong>Growth/Intensification:</strong> Amul expanding from butter → cheese → ice cream → chocolates → international markets. Same core (dairy) but growing scope.
+
+<strong>Growth/Diversification:</strong> ITC moving from cigarettes (unrelated) → hotels → FMCG → agri-business → paperboards. Unrelated diversification.
+
+<strong>Turnaround:</strong> Maruti Suzuki in early 2000s — slumping sales. Revamped products (Swift, SX4), cut costs, improved dealer network → successful turnaround.
+
+<strong>Divestment:</strong> Tata Motors selling Jaguar Land Rover? No — actually they kept it. But Reliance sold its retail arm to Amazon in a deal (partial divestment).
+
+<strong>Liquidation:</strong> Kingfisher Airlines — after turnaround failed, banks refused more loans. Finally shut down completely.`
+            },
+            mnemonic: {
+              word: "SGRC",
+              expand: `Four Grand Strategies: <strong>S</strong>tability · <strong>G</strong>rowth · <strong>R</strong>etrenchment · <strong>C</strong>ombination
+
+"<em>Some Giants Retreat Cleverly</em>"
+
+Retrenchment severity order: "T → D → L" = <strong>T</strong>urnaround → <strong>D</strong>ivestment → <strong>L</strong>iquidation (least to most severe)`
+            },
+            revision: {
+              title: "Quick Revision",
+              body: `<ul class="bullet-list">
+  <li>4 Grand Strategies: Stability, Growth, Retrenchment, Combination (Glueck & Jauch)</li>
+  <li>Stability = same market, same product, consolidation</li>
+  <li>Growth = enlarged scope, increased investment, diversification/intensification</li>
+  <li>Retrenchment: Turnaround → Divestment → Liquidation (severity order)</li>
+  <li>After turnaround fails → Divestment; after divestment fails → Liquidation</li>
+  <li>Combination = different strategies for different SBUs simultaneously</li>
+  <li>Strategic Alliances = collaborative strategies</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Confusing Turnaround with Stability — Turnaround is to REVERSE decline; Stability is to MAINTAIN current position</li>
+  <li>❌ Saying Liquidation comes before Divestment — wrong order! Turnaround first, then Divestment, then Liquidation</li>
+  <li>❌ Thinking Growth strategy is always good — it comes with higher risk</li>
+  <li>❌ Mixing up Related vs Unrelated Diversification — Related = same industry; Unrelated = different industries</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "Which strategy is implemented after the FAILURE of the Turnaround strategy?",
+              opts: ["Stability strategy","Liquidation strategy","Divestment strategy","Growth strategy"],
+              correct: 2,
+              explanation: "The sequence of retrenchment strategies in order of severity is: Turnaround → Divestment → Liquidation. After turnaround fails, the firm adopts DIVESTMENT (selling off units). Only if divestment fails does it proceed to liquidation." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "ITC's move from cigarettes into hotels and FMCG is an example of:",
+              opts: ["Related diversification","Unrelated diversification","Market intensification","Stability strategy"],
+              correct: 1,
+              explanation: "ITC's expansion into hotels and FMCG from cigarettes is UNRELATED DIVERSIFICATION — entering industries completely different from the core business. Related diversification would be within the same industry." },
+            { type: "tf", points: 5,
+              q: "Divestment strategy involves the complete shutdown of all business activities.",
+              correct: false,
+              explanation: "FALSE. Divestment (also called Divestiture) involves selling off specific loss-making units, divisions, or SBUs while continuing the rest of the business. LIQUIDATION involves complete shutdown of all business activities." },
+            { type: "mcq", difficulty: "hard", points: 15,
+              q: "A large conglomerate pursues Growth strategy for its IT division, Stability for its FMCG division, and Retrenchment for its declining textile division simultaneously. This is called:",
+              opts: ["Portfolio strategy","Combination strategy","Corporate diversification strategy","Multi-SBU strategy"],
+              correct: 1,
+              explanation: "Pursuing different grand strategies for different SBUs simultaneously = COMBINATION STRATEGY. This is common in large diversified conglomerates." },
+            { type: "fill", points: 8,
+              q: "The four grand strategies discussed by Glueck and Jauch are Stability, Growth, Retrenchment, and __________.",
+              correct: ["combination","Combination"],
+              explanation: "Glueck and Jauch identified four generic (grand) strategies: Stability, Growth, Retrenchment, and Combination. These are also called Directional Strategies." },
+            { type: "case", points: 20,
+              context: "SunBev Ltd. is a beverage company that makes fruit juices. Their mango juice has 25% market share and sales have been stable for 3 years. They are now considering launching sports drinks in the same market as an extension. Their rival company XYZ recently shut down its water purification unit and sold the machinery.",
+              q: "SunBev's strategy for mango juice (stable sales, consolidation) is __________, while launching sports drinks represents __________. XYZ's action represents __________.",
+              opts: ["Stability; Growth (Intensification); Turnaround","Stability; Growth (Diversification); Divestment","Growth; Stability; Liquidation","Retrenchment; Stability; Liquidation"],
+              correct: 1,
+              explanation: "Mango juice (stable for 3 years, consolidating) = STABILITY STRATEGY. Launching sports drinks (new product in existing market) = GROWTH via Diversification (new product category). XYZ selling off its water purification unit = DIVESTMENT (selling a unit, not complete shutdown)." }
+          ]
+        },
+
+        {
+          id: "4-2",
+          title: "BCG Matrix & Ansoff's Matrix",
+          content: {
+            explain: {
+              title: "Portfolio Analysis Models",
+              body: `<strong>Portfolio Analysis</strong> helps a company decide how to allocate resources among its different SBUs (Strategic Business Units) or products.
+
+<strong>Ansoff's Product-Market Growth Matrix:</strong>
+A 2×2 matrix based on Products (Existing/New) × Markets (Existing/New):
+
+<ul class="bullet-list">
+  <li>🎯 <strong>Market Penetration:</strong> Existing product + Existing market (lowest risk)</li>
+  <li>📦 <strong>Product Development:</strong> New product + Existing market</li>
+  <li>🌍 <strong>Market Development:</strong> Existing product + New market</li>
+  <li>🚀 <strong>Diversification:</strong> New product + New market (highest risk)</li>
+</ul>
+
+<strong>BCG Growth-Share Matrix:</strong>
+A 2×2 matrix based on Market Growth Rate (Y) × Relative Market Share (X):
+<ul class="bullet-list">
+  <li>⭐ <strong>Stars:</strong> High growth, High share → Invest heavily</li>
+  <li>🐄 <strong>Cash Cows:</strong> Low growth, High share → Milk for cash</li>
+  <li>❓ <strong>Question Marks:</strong> High growth, Low share → Invest selectively or divest</li>
+  <li>🐕 <strong>Dogs:</strong> Low growth, Low share → Divest or liquidate</li>
+</ul>`
+            },
+            icai: {
+              title: "ICAI: BCG Post-Identification Strategies & GE Matrix",
+              body: `<strong>BCG Post-Identification Strategies (ICAI specific):</strong>
+<ul class="bullet-list">
+  <li><strong>Build:</strong> Increase market share (even at short-term profit sacrifice) — for Question Marks with potential</li>
+  <li><strong>Hold:</strong> Preserve market share — for Cash Cows</li>
+  <li><strong>Harvest:</strong> Increase short-term cash flow regardless of long-term — for dying businesses</li>
+  <li><strong>Divest:</strong> Sell or liquidate — for Dogs or Question Marks that cannot be saved</li>
+</ul>
+
+<strong>GE McKinsey Matrix (Stop-Light Model):</strong>
+<ul class="bullet-list">
+  <li>Two factors: <strong>Business Strength</strong> × <strong>Market Attractiveness</strong></li>
+  <li>3×3 matrix (9 cells) vs BCG's 2×2</li>
+  <li>🟢 Green = Invest and Grow | 🟡 Yellow = Caution | 🔴 Red = Retrenchment/Divest</li>
+  <li>More comprehensive than BCG (considers multiple factors, not just growth rate and market share)</li>
+</ul>
+
+<strong>ADL Matrix:</strong>
+Arthur D. Little matrix. Uses: Stage of Industry Maturity × Competitive Position`
+            },
+            example: {
+              title: "BCG Matrix Example — Hindustan Unilever",
+              body: `<strong>HUL's BCG Analysis:</strong>
+<ul class="bullet-list">
+  <li>⭐ <strong>Stars:</strong> Dove (growing market, high share), Surf Excel — invest to maintain leadership</li>
+  <li>🐄 <strong>Cash Cows:</strong> Lifebuoy soap, Brooke Bond tea — low growth but high share, generate cash</li>
+  <li>❓ <strong>Question Marks:</strong> New health & wellness product lines — high growth market but low share yet</li>
+  <li>🐕 <strong>Dogs:</strong> Some legacy products with declining relevance — consider divestment</li>
+</ul>
+
+<strong>Ansoff Matrix Example — Parle-G:</strong>
+<ul class="bullet-list">
+  <li>Market Penetration: Sell more Parle-G biscuits to existing Indian consumers</li>
+  <li>Product Development: Launch Parle-G Choco (new product, existing market)</li>
+  <li>Market Development: Export Parle-G to African countries (existing product, new market)</li>
+  <li>Diversification: Launch Parle branded mineral water (new product, new market)</li>
+</ul>`
+            },
+            mnemonic: {
+              word: "BCG Stars",
+              expand: `BCG Quadrants (remember with a story):<br>
+<strong>Stars ⭐ → Cash Cows 🐄 → Question Marks ❓ → Dogs 🐕</strong>
+
+"A <strong>Star</strong> performer milks the <strong>Cow</strong> to fund <strong>Questions</strong>, while the <strong>Dog</strong> gets divested."
+
+BCG Post strategies: <strong>BHHD</strong> = Build · Hold · Harvest · Divest = "<em>Bulls Hold Hay Daily</em>"
+
+Ansoff: Risk increases from Market Penetration (lowest) to Diversification (highest): "People Must Discover More (risk)""`
+            },
+            revision: {
+              title: "Quick Revision",
+              body: `<ul class="bullet-list">
+  <li>Ansoff Matrix: Penetration (existing/existing), Product Dev (new/existing), Market Dev (existing/new), Diversification (new/new)</li>
+  <li>BCG: Stars (H growth, H share), Cash Cows (L growth, H share), Question Marks (H growth, L share), Dogs (L growth, L share)</li>
+  <li>BCG strategies: Build, Hold, Harvest, Divest</li>
+  <li>GE Matrix: 3×3, Business Strength × Market Attractiveness, Stop-Light (Green/Yellow/Red)</li>
+  <li>ADL Matrix: Industry Maturity × Competitive Position</li>
+  <li>GE vs BCG: GE uses multiple factors (more comprehensive); BCG uses single factors (simpler)</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Mixing BCG axes — Market Growth Rate is Y-axis, Relative Market Share is X-axis</li>
+  <li>❌ Calling Cash Cows "invest and grow" — Cash Cows = Hold strategy (already mature, just harvest cash)</li>
+  <li>❌ Confusing Ansoff's Diversification with BCG's Dogs — completely different contexts</li>
+  <li>❌ Saying GE Matrix has 4 cells — it's a 3×3 = 9 cells matrix (vs BCG's 2×2 = 4 cells)</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "In Ansoff's Matrix, launching an existing product in a new market is called:",
+              opts: ["Market Penetration","Product Development","Market Development","Diversification"],
+              correct: 2,
+              explanation: "Market Development = existing product + new market. It involves taking your current products into new geographic areas, new customer segments, or new distribution channels." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "In the BCG Matrix, which quadrant represents HIGH market growth rate and LOW relative market share?",
+              opts: ["Stars","Cash Cows","Question Marks","Dogs"],
+              correct: 2,
+              explanation: "Question Marks (also called Problem Children or Wild Cats) = High Growth Rate + Low Market Share. They require heavy investment and may become Stars or fail (become Dogs)." },
+            { type: "tf", points: 5,
+              q: "The GE McKinsey Matrix uses the same two dimensions as the BCG Matrix.",
+              correct: false,
+              explanation: "FALSE. BCG Matrix uses Market Growth Rate (Y) and Relative Market Share (X). GE Matrix uses Market Attractiveness (Y) and Business Strength/Competitive Position (X). GE uses multiple factors for each dimension, making it more comprehensive." },
+            { type: "mcq", difficulty: "hard", points: 15,
+              q: "The BCG post-identification strategy of 'Harvest' means:",
+              opts: ["Increase market share at all costs","Preserve current market share","Increase short-term cash flow regardless of long-term effects","Sell or liquidate the business"],
+              correct: 2,
+              explanation: "Harvest strategy = maximise short-term cash flow regardless of long-term impact. It's used for businesses in decline where long-term investment isn't worthwhile, but you want to extract maximum value before exiting." },
+            { type: "fill", points: 8,
+              q: "The GE McKinsey Matrix is also known as the __________ strategy model.",
+              correct: ["stop-light","Stop-light","Stop Light","stop light","stoplight"],
+              explanation: "The GE McKinsey Matrix is also called the 'Stop-Light' Strategy Model, inspired by traffic lights: Green = invest/grow, Yellow = caution, Red = retrench/divest." },
+            { type: "case", points: 20,
+              context: "FreshCo has four product lines: (A) Energy drinks — market growing at 25%, FreshCo has 40% share. (B) Traditional soda — market growing at 2%, FreshCo has 55% share. (C) Health shots — market growing at 30%, FreshCo has 8% share. (D) Powdered drinks — market growing at 1%, FreshCo has 10% share.",
+              q: "Classify each product in the BCG Matrix:",
+              opts: ["A=Star, B=Cash Cow, C=Question Mark, D=Dog","A=Cash Cow, B=Star, C=Dog, D=Question Mark","A=Question Mark, B=Dog, C=Star, D=Cash Cow","A=Star, B=Dog, C=Cash Cow, D=Question Mark"],
+              correct: 0,
+              explanation: "A (25% growth, 40% share) = STAR (high growth, high share). B (2% growth, 55% share) = CASH COW (low growth, high share). C (30% growth, 8% share) = QUESTION MARK (high growth, low share). D (1% growth, 10% share) = DOG (low growth, low share)." }
+          ]
+        }
+      ], // end ch4 missions
+
+      boss: {
+        name: "The Strategic Choices Champion",
+        description: "The Champion tests your mastery of Grand Strategies, BCG, Ansoff, GE Matrix, and strategic combinations. Final boss of Chapter 4!",
+        questions: [
+          { type: "mcq", difficulty: "boss", points: 25,
+            q: "The GE McKinsey Matrix differs from the BCG Matrix in which MOST SIGNIFICANT way?",
+            opts: ["GE has 4 cells, BCG has 9 cells","GE uses multiple factors for Business Strength and Market Attractiveness; BCG uses single factors (market share and growth)","GE was developed later than BCG","BCG considers more factors than GE"],
+            correct: 1,
+            explanation: "GE's key advantage: it uses MULTIPLE factors for both Business Strength (market share, growth rate, profit margins, technology position, etc.) and Market Attractiveness (market size, growth, competitive intensity, profitability, etc.), making it more nuanced than BCG's single-factor approach." },
+          { type: "case", points: 35,
+            context: "ConglomCo operates 4 SBUs: (1) Steel Division — mature industry, dominant player, stable cash flows. (2) AI Software Division — rapidly growing market, ConglomCo just entered, low market share. (3) Coal Division — declining industry, market share declining, losses mounting. (4) Electric Vehicle Components — explosive growth market, ConglomCo has 30% market share.",
+            q: "Match the BCG classification AND suggest appropriate strategies for each SBU:",
+            opts: ["Steel=Cash Cow(Hold), AI=Question Mark(Build/Divest), Coal=Dog(Divest), EV=Star(Invest)","Steel=Star, AI=Cash Cow, Coal=Question Mark, EV=Dog","Steel=Dog, AI=Star, Coal=Cash Cow, EV=Question Mark","Steel=Question Mark, AI=Dog, Coal=Star, EV=Cash Cow"],
+            correct: 0,
+            explanation: "Steel (mature, dominant, stable cash) = CASH COW → Hold strategy. AI Software (high growth, low share) = QUESTION MARK → Build or Divest. Coal (declining, losing share, losses) = DOG → Divest. EV Components (high growth, 30% share) = STAR → Invest." },
+          { type: "tf", points: 20,
+            q: "In Ansoff's Matrix, Market Penetration carries the HIGHEST risk among all four strategies.",
+            correct: false,
+            explanation: "FALSE. Market Penetration carries the LOWEST risk (existing product, existing market — you know both). DIVERSIFICATION carries the HIGHEST risk (new product, new market — neither is known)." },
+          { type: "mcq", difficulty: "boss", points: 30,
+            q: "A company facing heavy losses in its hotel division tries cost-cutting, management changes, and new marketing — all ineffective. It then decides to sell the hotel properties. Finally, the remaining hotel operations are completely shut. Which sequence of strategies was followed?",
+            opts: ["Divestment → Turnaround → Liquidation","Turnaround → Divestment → Liquidation","Liquidation → Turnaround → Divestment","Stability → Divestment → Liquidation"],
+            correct: 1,
+            explanation: "Cost-cutting and management changes = TURNAROUND attempt. Selling hotel properties = DIVESTMENT. Complete shutdown of remaining operations = LIQUIDATION. This is the correct severity sequence: Turnaround → Divestment → Liquidation." }
+        ]
+      }
+    },
+
+    // ═══════════════════════════════════════════════════════
+    // CHAPTER 5: Strategy Implementation & Evaluation
+    // ═══════════════════════════════════════════════════════
+    {
+      id: 5,
+      title: "Strategy Implementation & Evaluation",
+      subtitle: "Executing and Measuring Strategy",
+      icon: "🚀",
+      xpReward: 320,
+      missions: [
+        {
+          id: "5-1",
+          title: "Strategy Implementation vs Formulation",
+          content: {
+            explain: {
+              title: "Implementation: Where Strategy Meets Reality",
+              body: `<strong>Strategy Formulation</strong> is deciding WHAT to do.
+<strong>Strategy Implementation</strong> is deciding HOW to do it and actually doing it.
+
+<div class="highlight">A brilliant strategy poorly implemented will fail. Mediocre strategy well implemented can succeed. Implementation is where real competitive advantage is built or lost.</div>
+
+<strong>Key differences:</strong>
+<ul class="bullet-list">
+  <li><strong>Formulation</strong> — Intellectual, analytical, top management, positions forces before action</li>
+  <li><strong>Implementation</strong> — Operational, action-oriented, all levels, manages forces during action</li>
+</ul>
+
+<strong>Stages in Strategic Management (Process):</strong>
+<ul class="bullet-list">
+  <li>Environmental Scanning → Strategy Formulation → Strategy Implementation → Evaluation & Control</li>
+</ul>`
+            },
+            icai: {
+              title: "ICAI: Implementation Linkages & Issues",
+              body: `<strong>ICAI Key Differences — Formulation vs Implementation:</strong>
+<ul class="bullet-list">
+  <li>Formulation requires good intuitive and analytical skills; Implementation requires special motivation and leadership skills</li>
+  <li>Formulation requires coordination among few individuals; Implementation requires coordination among many</li>
+  <li>Formulation is primarily intellectual; Implementation is primarily operational</li>
+</ul>
+
+<strong>Issues in Strategy Implementation:</strong>
+<ul class="bullet-list">
+  <li><strong>Leadership:</strong> Strategic leadership needed to drive change</li>
+  <li><strong>Organisational structure:</strong> Structure must support strategy ("Structure follows Strategy" — Chandler)</li>
+  <li><strong>Culture:</strong> Organisational culture must align with strategy</li>
+  <li><strong>Resource allocation:</strong> Right resources to right units</li>
+  <li><strong>Linkage between formulation and implementation:</strong> The strategy must be clearly communicated</li>
+</ul>
+
+<div class="highlight">Alfred Chandler's principle: <strong>"Structure follows Strategy"</strong> — after choosing a strategy, adjust the organisational structure to support it.</div>`
+            },
+            example: {
+              title: "The Implementation Gap",
+              body: `<strong>Nokia's Missed Implementation:</strong>
+Nokia's management KNEW touchscreens were the future (good formulation). But they failed to implement — their engineering teams were siloed, culture was resistant to change, and structure didn't support rapid software development. Apple implemented the same knowledge brilliantly.
+
+<strong>Amazon's Implementation Excellence:</strong>
+Amazon's strategy = customer obsession. Implementation: 2-day delivery (Prime), 1-click ordering, no-question-return policy, AWS for reliability. Every operational decision implements the core strategy.
+
+<strong>Key takeaway:</strong> The world's most brilliant strategy is worthless without implementation. As Alfred Chandler proved — structure must FOLLOW strategy.`
+            },
+            mnemonic: {
+              word: "FIEC → Implementation",
+              expand: `Remember Chandler: <strong>"Structure follows Strategy"</strong>
+
+Formulation vs Implementation:
+F = <strong>F</strong>ew people, <strong>F</strong>ormulates
+I = <strong>I</strong>nvolves many, <strong>I</strong>s operational
+
+Implementation issues: <strong>SLCRL</strong> = <strong>S</strong>tructure · <strong>L</strong>eadership · <strong>C</strong>ulture · <strong>R</strong>esource allocation · <strong>L</strong>inkage`
+            },
+            revision: {
+              title: "Quick Revision",
+              body: `<ul class="bullet-list">
+  <li>Formulation = WHAT to do (intellectual, top management, few people)</li>
+  <li>Implementation = HOW to do it (operational, all levels, many people)</li>
+  <li>Chandler: "Structure follows Strategy"</li>
+  <li>Strategic Management Process: Env. Scanning → Formulation → Implementation → Evaluation</li>
+  <li>Implementation issues: Structure, Leadership, Culture, Resource allocation, Linkage</li>
+  <li>Brilliant strategy + poor implementation = failure</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Thinking formulation is more important than implementation — both are critical, neither can succeed without the other</li>
+  <li>❌ Forgetting Chandler's principle "Structure follows Strategy" — very frequently tested</li>
+  <li>❌ Not listing implementation ISSUES separately — they are distinct from steps of implementation</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "Alfred Chandler's famous principle related to strategy implementation is:",
+              opts: ["Strategy follows Culture","Structure follows Strategy","Implementation follows Formulation","Management follows Leadership"],
+              correct: 1,
+              explanation: "Alfred Chandler established 'Structure follows Strategy' — meaning after a strategy is chosen, the organisational structure must be adjusted to support that strategy effectively." },
+            { type: "tf", points: 5,
+              q: "Strategy Formulation primarily requires operational skills and coordination among many people.",
+              correct: false,
+              explanation: "FALSE. Strategy FORMULATION requires good intuitive and analytical skills, and coordination among FEW individuals (top management). Strategy IMPLEMENTATION requires motivation, leadership, and coordination among MANY people at all levels." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "Which of the following is an issue in Strategy Implementation?",
+              opts: ["Selecting the industry to compete in","Organisational culture alignment with strategy","Identifying strategic options","Conducting PESTLE analysis"],
+              correct: 1,
+              explanation: "Organisational culture alignment with strategy is a KEY issue in implementation. Strategy implementation challenges include: structure, leadership, culture, resource allocation, and linkages. PESTLE analysis and strategy selection are part of formulation." },
+            { type: "mcq", difficulty: "hard", points: 15,
+              q: "Which of the following BEST distinguishes Formulation from Implementation?",
+              opts: ["Formulation is reactive; Implementation is proactive","Formulation positions forces before action; Implementation manages forces during action","Formulation involves all employees; Implementation involves only top management","Formulation is less important; Implementation is more critical"],
+              correct: 1,
+              explanation: "Formulation POSITIONS forces BEFORE action (planning, analysis, decision-making). Implementation MANAGES forces DURING action (executing, coordinating, leading). Both are critical." }
+          ]
+        },
+
+        {
+          id: "5-2",
+          title: "Strategic Change, Digital Transformation & Organisational Structure",
+          content: {
+            explain: {
+              title: "Strategic Change & Digital Transformation",
+              body: `<strong>Strategic Change</strong> = a fundamental shift in the way an organisation operates — its strategy, structure, processes, culture, or people.
+
+<strong>Digital Transformation</strong> = integrating digital technology into all areas of a business, fundamentally changing how you operate and deliver value to customers.
+
+<div class="highlight">Digital transformation is NOT just buying computers. It's a <em>cultural and strategic change</em> that requires organisations to continually challenge the status quo.</div>
+
+<strong>Organisational Structure Types:</strong>
+<ul class="bullet-list">
+  <li>🏢 <strong>Simple/Entrepreneurial:</strong> Founder-centred, few layers (startups)</li>
+  <li>🔢 <strong>Functional:</strong> Departments by function — Marketing, Finance, HR, Operations</li>
+  <li>🌐 <strong>Divisional:</strong> Divisions by product, geography, or customer type</li>
+  <li>🕸️ <strong>Matrix:</strong> Dual reporting — both functional and project/divisional managers</li>
+  <li>🔗 <strong>Network/Virtual:</strong> Outsource most functions, keep core</li>
+</ul>`
+            },
+            icai: {
+              title: "ICAI: Strategic Leadership & Strategic Control",
+              body: `<strong>Strategic Leadership:</strong>
+<ul class="bullet-list">
+  <li>Ability to anticipate, envision, maintain flexibility, think strategically, and work with others to initiate changes</li>
+  <li>Involves formulating and implementing strategy</li>
+  <li>Key tasks: Managing resources, managing change, building organisational culture, sustaining competitive advantage</li>
+</ul>
+
+<strong>Strategic Control:</strong>
+<ul class="bullet-list">
+  <li>Process of evaluating whether strategy is being implemented correctly</li>
+  <li>Types: Premise control, Implementation control, Strategic surveillance, Special alert control</li>
+</ul>
+
+<strong>Strategic Performance Measures:</strong>
+<ul class="bullet-list">
+  <li>Financial measures: ROI, ROE, EPS, revenue growth</li>
+  <li>Non-financial measures: Customer satisfaction, market share, innovation, employee engagement</li>
+  <li><strong>Balanced Scorecard:</strong> Balances financial + customer + internal process + learning/growth perspectives</li>
+</ul>`
+            },
+            example: {
+              title: "Digital Transformation Examples",
+              body: `<strong>ICICI Bank — Digital Transformation:</strong>
+Shifted from branch-centric banking → digital-first. iMobile app, internet banking, AI chatbots. Structure changed: new Digital Banking division created. Culture shifted: "Digital is primary channel."
+
+<strong>Domino's Pizza — Digital + Structure:</strong>
+Domino's CEO called it a "tech company that makes pizza." Invested in online ordering, 30-minute delivery tracking, AnyWare ordering (tweets, smart TV, watch). Revenue exploded.
+
+<strong>Organisational Structure — Infosys:</strong>
+Uses Matrix structure: employees report to both their Technology Practice head (functional) AND their client project head (project/divisional). This supports their strategy of delivering specialised expertise to specific client projects.`
+            },
+            mnemonic: {
+              word: "SFMD",
+              expand: `Organisation Structure types: <strong>S</strong>imple · <strong>F</strong>unctional · <strong>M</strong>atrix · <strong>D</strong>ivisional (+ Network)
+
+"<em>Simply Functioning Matrices Daily</em>"
+
+Balanced Scorecard 4 Perspectives: <strong>FCIL</strong> = <strong>F</strong>inancial · <strong>C</strong>ustomer · <strong>I</strong>nternal Process · <strong>L</strong>earning & Growth
+
+"<em>Finance Customers Improve Learning</em>"`
+            },
+            revision: {
+              title: "Quick Revision",
+              body: `<ul class="bullet-list">
+  <li>Strategic Change = fundamental shift in strategy, structure, culture, processes</li>
+  <li>Digital Transformation = integrating digital tech into ALL areas (cultural + strategic change)</li>
+  <li>Structure types: Simple, Functional, Divisional, Matrix, Network</li>
+  <li>Strategic Leadership = anticipate, envision, initiate strategic changes</li>
+  <li>Strategic Control types: Premise, Implementation, Surveillance, Special Alert</li>
+  <li>Balanced Scorecard = Financial + Customer + Internal Process + Learning & Growth</li>
+</ul>`
+            },
+            mistakes: {
+              title: "Common Mistakes",
+              body: `<ul class="bullet-list">
+  <li>❌ Thinking Digital Transformation = just digitising existing processes — it's a fundamental rethinking</li>
+  <li>❌ Confusing Functional structure (departments by function) with Divisional structure (departments by product/geography)</li>
+  <li>❌ Forgetting Balanced Scorecard has 4 perspectives — students often list only 2 or 3</li>
+  <li>❌ Not knowing types of Strategic Control — Premise, Implementation, Surveillance, Special Alert</li>
+</ul>`
+            }
+          },
+          quiz: [
+            { type: "mcq", difficulty: "easy", points: 5,
+              q: "The Balanced Scorecard includes which of the following perspectives?",
+              opts: ["Financial and Ecological","Financial, Customer, Internal Process, and Learning & Growth","Only financial measures","Strategic and Operational"],
+              correct: 1,
+              explanation: "The Balanced Scorecard (Kaplan & Norton) balances four perspectives: (1) Financial, (2) Customer, (3) Internal Business Process, (4) Learning & Growth. It goes beyond purely financial metrics." },
+            { type: "mcq", difficulty: "medium", points: 10,
+              q: "A structure where employees report to BOTH a functional head AND a project head is called:",
+              opts: ["Functional structure","Divisional structure","Matrix structure","Simple structure"],
+              correct: 2,
+              explanation: "Matrix structure involves DUAL reporting relationships — employees report to both their functional/department head AND a project/divisional manager. This supports complex projects that need both functional expertise and project focus." },
+            { type: "tf", points: 5,
+              q: "Digital transformation is merely about purchasing the latest technology for the office.",
+              correct: false,
+              explanation: "FALSE. Digital transformation is a fundamental cultural and strategic change — it means integrating digital technology into ALL areas of the business and changing how you operate and deliver value. It requires challenging the status quo, not just buying new tools." },
+            { type: "fill", points: 8,
+              q: "The four types of Strategic Control are: Premise control, Implementation control, Strategic surveillance, and __________ alert control.",
+              correct: ["special","Special"],
+              explanation: "The four types of Strategic Control are: (1) Premise Control — monitoring assumptions; (2) Implementation Control — checking milestones; (3) Strategic Surveillance — broad monitoring; (4) Special Alert Control — for sudden, unexpected events." },
+            { type: "desc", points: 25,
+              q: "Explain Digital Transformation as a strategic concept and give one example of how it changes an organisation's structure and culture.",
+              keyPoints: ["Definition of digital transformation","It's a cultural + strategic change","Changes structure (new divisions, roles)","Changes culture (digital-first mindset)","Real example"] }
+          ]
+        }
+      ], // end ch5 missions
+
+      boss: {
+        name: "The Supreme Strategy Overlord",
+        description: "The Final Boss of StrategyForge! Complete mastery of ALL 5 chapters required. ICAI paper-style questions. Only true strategists pass!",
+        questions: [
+          { type: "mcq", difficulty: "boss", points: 30,
+            q: "Which of the following is TRUE about the relationship between Strategy Formulation and Implementation?",
+            opts: ["Formulation and implementation are separate processes with no relationship","Structure follows strategy (Chandler) — formulation leads, implementation follows by adjusting structure","Implementation comes BEFORE formulation in the strategic process","Formulation requires many people; implementation requires few"],
+            correct: 1,
+            explanation: "Chandler's principle: 'Structure follows Strategy.' Formulation (deciding WHAT) must precede implementation (deciding HOW and DOING). Implementation requires adjusting structure, resources, and culture to match the chosen strategy." },
+          { type: "case", points: 40,
+            context: "MegaBank Ltd. is a large commercial bank. Their Board has decided to: (a) Exit the rural lending business (too many NPAs), (b) Aggressively expand digital banking services, (c) Maintain their corporate lending business as it generates stable revenue, (d) Enter the insurance sector through a joint venture. Their IT department resists digital changes. Customer satisfaction has dropped. They want to measure strategy effectiveness.",
+            q: "Apply strategic concepts to analyse MegaBank's situation — Grand Strategy classification for each decision and key implementation challenge:",
+            opts: ["a=Growth, b=Stability, c=Retrenchment, d=Growth; Challenge=PESTLE","a=Retrenchment, b=Growth, c=Stability, d=Growth (Diversification); Challenge=Culture resistance and structural alignment","a=Stability, b=Retrenchment, c=Growth, d=Combination; Challenge=BCG Matrix","a=Growth, b=Growth, c=Growth, d=Growth; No challenges exist"],
+            correct: 1,
+            explanation: "a) Exit rural lending = RETRENCHMENT (Divestment strategy). b) Aggressive digital expansion = GROWTH strategy. c) Maintain corporate lending = STABILITY strategy. d) Insurance joint venture = GROWTH (Related Diversification — financial services). This is COMBINATION strategy overall. Key implementation challenge: IT department resistance = culture change needed; dropping customer satisfaction = performance measure issue (needs Balanced Scorecard)." },
+          { type: "tf", points: 20,
+            q: "BCG Matrix and GE McKinsey Matrix both use exactly two single factors as their axes.",
+            correct: false,
+            explanation: "PARTIALLY FALSE. BCG uses two SINGLE factors: Market Growth Rate and Relative Market Share. GE Matrix uses two COMPOSITE factors: Market Attractiveness (multiple factors) and Business Strength (multiple factors). This makes GE more comprehensive than BCG." },
+          { type: "mcq", difficulty: "boss", points: 35,
+            q: "Which combination of frameworks would provide the MOST COMPREHENSIVE analysis for a firm deciding whether to launch a new product in a new market?",
+            opts: ["Only SWOT analysis","Only Ansoff's Matrix","PESTLE (external threats/opportunities) + SWOT (strengths to exploit opportunities) + Ansoff's Matrix (strategy choice: Diversification) + BCG (resource allocation)","Porter's Five Forces only"],
+            correct: 2,
+            explanation: "Comprehensive analysis requires: PESTLE → identify macro external opportunities and threats. SWOT → identify internal strengths/weaknesses and match with external factors. Ansoff's Matrix → the new product/new market = Diversification (highest risk). BCG → allocate resources appropriately (fund this as a Question Mark initially). Using all frameworks together provides the most thorough strategic analysis." }
+        ]
+      }
+    }
+
+  ] // end chapters array
+}; // end GAME_DATA
+
+/* ============================================================
+   GAME STATE
+   ============================================================ */
+const state = {
+  hp: 100,
+  maxHp: 100,
+  xp: 0,
+  xpForNextLevel: 200,
+  level: 1,
+  streak: 0,
+  maxStreak: 0,
+  totalXP: 0,
+  currentChapter: 0,
+  currentMission: 0,
+  currentPhase: 'learn',      // 'learn' | 'quiz' | 'boss'
+  currentTabIndex: 0,
+  currentQuizIndex: 0,
+  quizAnswered: false,
+  missionProgress: {},        // {chapterId_missionId: {completed, score, attempts}}
+  chapterProgress: {},        // {chapterId: {missionsCompleted, bossDefeated, totalXP}}
+  achievements: new Set(),
+  weakTopics: {},             // {missionTitle: {correct, total}}
+  sessionScore: 0,
+  sessionQuestions: 0,
+  bossQuizIndex: 0,
+  bossScore: 0,
+  currentQuizList: []
+};
+
+const LEARN_TABS = ['explain','icai','example','mnemonic','revision','mistakes'];
+const TAB_LABELS  = ['📘 Explain','📋 ICAI Style','🌍 Example','🧠 Mnemonic','📝 Revision','⚠️ Mistakes'];
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  if (id === 'chapters') renderChapters();
+}
+
+function $(id) { return document.getElementById(id); }
+
+function showXPFloat(x, y, amount) {
+  const el = document.createElement('div');
+  el.className = 'xp-float';
+  el.textContent = '+' + amount + ' XP';
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+
+function updateHUD() {
+  const hpPct  = (state.hp / state.maxHp) * 100;
+  const xpPct  = (state.xp / state.xpForNextLevel) * 100;
+  $('health-fill').style.width = hpPct + '%';
+  $('health-num').textContent  = state.hp;
+  $('xp-fill').style.width     = Math.min(xpPct, 100) + '%';
+  $('xp-num').textContent      = state.xp;
+  $('streak-num').textContent  = state.streak;
+  $('level-num').textContent   = state.level;
+  // colour health bar red when low
+  if (state.hp < 30) $('health-fill').style.background = '#ef4444';
+  else if (state.hp < 60) $('health-fill').style.background = 'linear-gradient(90deg,#f97316,#fbbf24)';
+  else $('health-fill').style.background = 'linear-gradient(90deg,#ef4444,#f97316)';
+}
+
+function gainXP(amount, x, y) {
+  const bonus = Math.floor(amount * (state.streak > 4 ? 1.5 : state.streak > 1 ? 1.2 : 1));
+  state.xp += bonus;
+  state.totalXP += bonus;
+  if (x && y) showXPFloat(x, y, bonus);
+  while (state.xp >= state.xpForNextLevel) {
+    state.xp -= state.xpForNextLevel;
+    state.level++;
+    state.xpForNextLevel = Math.floor(state.xpForNextLevel * 1.4);
+    showAchievement('Level Up! ⚡', 'You reached Level ' + state.level + '!');
+  }
+  updateHUD();
+}
+
+function loseHP(amount) {
+  state.hp = Math.max(0, state.hp - amount);
+  state.streak = 0;
+  updateHUD();
+  $('health-fill').parentElement.classList.add('shake');
+  setTimeout(() => $('health-fill').parentElement.classList.remove('shake'), 400);
+}
+
+function showAchievement(title, desc) {
+  const toast = $('achievement-toast');
+  $('toast-title').textContent = title;
+  $('toast-desc').textContent  = desc;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+function checkAchievements() {
+  if (state.streak >= 5 && !state.achievements.has('streak5')) {
+    state.achievements.add('streak5');
+    showAchievement('🔥 On Fire!', '5 correct in a row!');
+  }
+  if (state.streak >= 10 && !state.achievements.has('streak10')) {
+    state.achievements.add('streak10');
+    showAchievement('⚡ Unstoppable!', '10-answer streak!');
+  }
+  if (state.totalXP >= 500 && !state.achievements.has('xp500')) {
+    state.achievements.add('xp500');
+    showAchievement('🌟 500 XP Club', 'You earned 500 XP total!');
+  }
+}
+
+/* ============================================================
+   PARTICLE SYSTEM
+   ============================================================ */
+function initParticles() {
+  const container = $('particles');
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.animationDuration = (8 + Math.random() * 12) + 's';
+    p.style.animationDelay    = (Math.random() * 10) + 's';
+    p.style.setProperty('--dx', (Math.random() * 80 - 40) + 'px');
+    // Some gold, some violet
+    if (Math.random() > 0.6) p.style.background = '#f59e0b';
+    container.appendChild(p);
+  }
+}
+
+/* ============================================================
+   CHAPTER LIST
+   ============================================================ */
+function renderChapters() {
+  const grid = $('chapters-grid');
+  grid.innerHTML = '';
+  GAME_DATA.chapters.forEach((ch, idx) => {
+    const prog = state.chapterProgress[ch.id] || {missionsCompleted:0, bossDefeated:false};
+    const pct  = Math.round((prog.missionsCompleted / ch.missions.length) * 100);
+    const locked = idx > 0 && !Object.values(state.chapterProgress).some((p,i) => i === idx-1 && p.bossDefeated !== undefined);
+    // Allow all chapters unlocked for learning
+    const card = document.createElement('div');
+    card.className = 'chapter-card';
+    card.innerHTML = `
+      <div class="chapter-xp-badge">+${ch.xpReward} XP</div>
+      <div class="chapter-num">${ch.icon} Chapter ${ch.id}</div>
+      <div class="chapter-title">${ch.title}</div>
+      <div class="chapter-desc">${ch.subtitle}</div>
+      <div class="chapter-meta">
+        <span>📚 ${ch.missions.length} Missions</span>
+        <span>${prog.bossDefeated ? '👑 Boss Defeated' : '⚔️ Boss Waiting'}</span>
+      </div>
+      <div class="chapter-progress-bar">
+        <div class="chapter-progress-fill" style="width:${pct}%"></div>
+      </div>
+    `;
+    card.onclick = () => startChapter(idx);
+    grid.appendChild(card);
+  });
+}
+
+/* ============================================================
+   START CHAPTER / MISSION
+   ============================================================ */
+function startChapter(chapterIdx) {
+  state.currentChapter = chapterIdx;
+  state.currentMission = 0;
+  state.hp = 100;
+  updateHUD();
+  showScreen('game');
+  buildSidebar();
+  loadMission(0);
+}
+
+function buildSidebar() {
+  const ch  = GAME_DATA.chapters[state.currentChapter];
+  const sb  = $('mission-sidebar');
+  sb.innerHTML = `<div class="sidebar-chapter-label">${ch.icon} ${ch.title}</div>`;
+  ch.missions.forEach((m, idx) => {
+    const prog     = state.missionProgress[ch.id + '_' + m.id];
+    const completed = prog && prog.completed;
+    const div = document.createElement('div');
+    div.className = `mission-item ${idx === state.currentMission ? 'active' : ''} ${completed ? 'completed' : ''}`;
+    div.id = 'mission-item-' + idx;
+    div.innerHTML = `<div class="mission-dot"></div><div class="mission-text">${m.title}</div>`;
+    div.onclick = () => {
+      state.currentMission = idx;
+      loadMission(idx);
+      document.querySelectorAll('.mission-item').forEach(el => el.classList.remove('active'));
+      div.classList.add('active');
+    };
+    sb.appendChild(div);
+  });
+  // Boss entry
+  const bossDiv = document.createElement('div');
+  bossDiv.className = 'mission-item';
+  bossDiv.id = 'mission-item-boss';
+  bossDiv.innerHTML = `<div class="mission-dot" style="background:var(--red)"></div><div class="mission-text">⚔️ Final Boss Battle</div>`;
+  bossDiv.onclick = () => loadBoss();
+  sb.appendChild(bossDiv);
+}
+
+/* ============================================================
+   LOAD MISSION (LEARN PHASE)
+   ============================================================ */
+function loadMission(idx) {
+  const ch      = GAME_DATA.chapters[state.currentChapter];
+  const mission = ch.missions[idx];
+  state.currentMission  = idx;
+  state.currentPhase    = 'learn';
+  state.currentTabIndex = 0;
+  state.currentQuizIndex = 0;
+  state.quizAnswered = false;
+  $('topbar-title').textContent = `Ch.${ch.id} · ${mission.title}`;
+  renderLearnPhase(mission);
+}
+
+function renderLearnPhase(mission) {
+  const content = $('game-content');
+  const tabs    = LEARN_TABS.map((tab, i) => `<button class="learn-tab ${i===state.currentTabIndex?'active':''}" onclick="switchTab(${i})">${TAB_LABELS[i]}</button>`).join('');
+  const tabData = mission.content[LEARN_TABS[state.currentTabIndex]];
+  const phaseClass = `phase-${LEARN_TABS[state.currentTabIndex]}`;
+  const phaseLabel = TAB_LABELS[state.currentTabIndex];
+
+  let bodyHTML = '';
+  if (LEARN_TABS[state.currentTabIndex] === 'mnemonic') {
+    bodyHTML = `
+      <div class="mnemonic-box">
+        <div class="mnemonic-word">${tabData.word}</div>
+        <div class="mnemonic-expand">${tabData.expand}</div>
+      </div>`;
+  } else {
+    bodyHTML = `<div class="learn-body">${tabData.body}</div>`;
+  }
+
+  content.innerHTML = `
+    <div class="learn-tabs">${tabs}</div>
+    <div class="learn-card">
+      <div class="learn-phase ${phaseClass}">${phaseLabel}</div>
+      <div class="learn-title">${tabData.title || mission.title}</div>
+      ${bodyHTML}
+    </div>
+    <div class="quiz-nav">
+      <button class="btn-next" onclick="startQuiz()">⚔️ Start Quiz Battle</button>
+      ${state.currentMission < GAME_DATA.chapters[state.currentChapter].missions.length - 1
+        ? `<button class="btn-skip" onclick="loadMission(${state.currentMission+1})">Next Mission →</button>` 
+        : `<button class="btn-skip" onclick="loadBoss()">⚔️ Face the Boss</button>`}
+    </div>
+  `;
+}
+
+function switchTab(i) {
+  state.currentTabIndex = i;
+  renderLearnPhase(GAME_DATA.chapters[state.currentChapter].missions[state.currentMission]);
+}
+
+/* ============================================================
+   QUIZ PHASE
+   ============================================================ */
+function startQuiz() {
+  const mission = GAME_DATA.chapters[state.currentChapter].missions[state.currentMission];
+  state.currentPhase     = 'quiz';
+  state.currentQuizIndex = 0;
+  state.quizAnswered     = false;
+  state.currentQuizList  = [...mission.quiz];
+  state.sessionScore     = 0;
+  state.sessionQuestions = state.currentQuizList.length;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const qs = state.currentQuizList;
+  if (state.currentQuizIndex >= qs.length) {
+    completeMission();
+    return;
+  }
+  const q   = qs[state.currentQuizIndex];
+  const num = state.currentQuizIndex + 1;
+  const pct = Math.round(((state.currentQuizIndex) / qs.length) * 100);
+  const typeBadge = getTypeBadge(q.type, q.difficulty);
+
+  let questionHTML = '';
+  if (q.type === 'mcq' || q.type === 'case') {
+    const caseCtx = q.context ? `<div class="case-context">📋 ${q.context}</div>` : '';
+    const optsHTML = q.opts.map((opt, i) => `
+      <button class="option-btn" id="opt-${i}" onclick="answerMCQ(${i})">
+        <span class="option-key">${String.fromCharCode(65+i)}</span>
+        <span>${opt}</span>
+      </button>`).join('');
+    questionHTML = `${caseCtx}<div class="question-text">${q.q}</div><div class="options-grid">${optsHTML}</div>`;
+  } else if (q.type === 'tf') {
+    questionHTML = `<div class="question-text">${q.q}</div>
+      <div class="tf-grid">
+        <button class="tf-btn true-btn" id="btn-true"  onclick="answerTF(true)">✅ TRUE</button>
+        <button class="tf-btn false-btn" id="btn-false" onclick="answerTF(false)">❌ FALSE</button>
+      </div>`;
+  } else if (q.type === 'fill') {
+    questionHTML = `<div class="question-text">${q.q}</div>
+      <div class="fill-wrap">
+        <input class="fill-input" id="fill-input" placeholder="Type your answer here..." />
+        <button class="btn-submit" onclick="answerFill()">Submit</button>
+      </div>`;
+  } else if (q.type === 'desc') {
+    const hints = q.keyPoints ? q.keyPoints.map(k => `<li>${k}</li>`).join('') : '';
+    questionHTML = `<div class="question-text">${q.q}</div>
+      ${hints ? `<div style="font-size:0.85rem;color:var(--text-3);margin-bottom:12px;">Key points to cover: <ul style="margin-top:4px;padding-left:16px;color:var(--text-3);">${hints}</ul></div>` : ''}
+      <textarea class="desc-textarea" id="desc-input" placeholder="Write your descriptive answer here..."></textarea>
+      <button class="btn-next" onclick="answerDesc()">✅ Check Key Points</button>`;
+  }
+
+  $('game-content').innerHTML = `
+    <div class="quiz-progress-row">
+      <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:${pct}%"></div></div>
+      <span class="quiz-progress-text">${num}/${qs.length}</span>
+    </div>
+    <div class="quiz-header">
+      <div class="${typeBadge.cls}">${typeBadge.label}</div>
+      <div class="quiz-points">🏆 ${q.points} pts</div>
+    </div>
+    <div class="question-card">
+      <div class="question-num">Question ${num} of ${qs.length}</div>
+      ${questionHTML}
+      <div id="feedback-area"></div>
+    </div>
+    <div class="quiz-nav" id="quiz-nav" style="display:none;">
+      <button class="btn-next" onclick="nextQuestion()">Next Question →</button>
+      <button class="btn-skip" onclick="switchTab(0); renderLearnPhase(GAME_DATA.chapters[state.currentChapter].missions[state.currentMission])">📖 Review Topic</button>
+    </div>
+  `;
+}
+
+function getTypeBadge(type, diff) {
+  const map = {
+    mcq:  { cls: diff==='hard'?'quiz-type-badge qtype-case':'quiz-type-badge qtype-mcq', label: diff==='hard'?'🧠 Hard MCQ':'📋 MCQ' },
+    tf:   { cls: 'quiz-type-badge qtype-tf',   label: '⚖️ True / False' },
+    fill: { cls: 'quiz-type-badge qtype-fill', label: '✏️ Fill in Blank' },
+    desc: { cls: 'quiz-type-badge qtype-desc', label: '📝 Descriptive' },
+    case: { cls: 'quiz-type-badge qtype-case', label: '📊 Case Study' },
+    boss: { cls: 'quiz-type-badge qtype-boss', label: '⚔️ Boss Question' }
+  };
+  return map[type] || map.mcq;
+}
+
+function showFeedback(correct, explanation, awarded) {
+  const fb = $('feedback-area');
+  const icon = correct ? '✅' : '❌';
+  const cls  = correct ? 'correct-fb' : 'wrong-fb';
+  const title= correct ? `Correct! +${awarded} XP` : 'Incorrect';
+  fb.innerHTML = `
+    <div class="feedback-panel ${cls}">
+      <div class="fb-title">${icon} ${title}</div>
+      <div class="fb-body"><strong>Explanation:</strong> ${explanation}</div>
+    </div>`;
+  $('quiz-nav').style.display = 'flex';
+  state.quizAnswered = true;
+}
+
+function answerMCQ(chosen) {
+  if (state.quizAnswered) return;
+  const q = state.currentQuizList[state.currentQuizIndex];
+  const correct = (chosen === q.correct);
+  document.querySelectorAll('.option-btn').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.classList.add('correct');
+    else if (i === chosen && !correct) btn.classList.add('wrong');
+  });
+  processAnswer(correct, q.points, q.explanation);
+}
+
+function answerTF(chosen) {
+  if (state.quizAnswered) return;
+  const q = state.currentQuizList[state.currentQuizIndex];
+  const correct = (chosen === q.correct);
+  $('btn-true').disabled = $('btn-false').disabled = true;
+  if (q.correct) { $('btn-true').classList.add('correct');  if(!correct) $('btn-false').classList.add('wrong'); }
+  else           { $('btn-false').classList.add('correct'); if(!correct) $('btn-true').classList.add('wrong'); }
+  processAnswer(correct, q.points, q.explanation);
+}
+
+function answerFill() {
+  if (state.quizAnswered) return;
+  const q     = state.currentQuizList[state.currentQuizIndex];
+  const input = $('fill-input');
+  const val   = (input.value || '').trim().toLowerCase();
+  const correct = q.correct.some(a => a.toLowerCase() === val);
+  input.disabled = true;
+  input.classList.add(correct ? 'correct-input' : 'wrong-input');
+  if (!correct) {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'margin-top:8px;font-size:0.85rem;color:var(--gold);';
+    hint.textContent = 'Correct answer: ' + q.correct[0];
+    input.parentElement.appendChild(hint);
+  }
+  processAnswer(correct, q.points, q.explanation);
+}
+
+function answerDesc() {
+  if (state.quizAnswered) return;
+  const q     = state.currentQuizList[state.currentQuizIndex];
+  const input = $('desc-input');
+  const val   = (input.value || '').toLowerCase();
+  const matched = q.keyPoints.filter(kp => val.includes(kp.toLowerCase().split(' ')[0]));
+  const pct     = matched.length / q.keyPoints.length;
+  const partial  = pct >= 0.5;
+  const awarded  = Math.round(q.points * pct);
+  const explanation = `Key points covered: ${matched.length}/${q.keyPoints.length}.<br>Expected points: <strong>${q.keyPoints.join(', ')}</strong>`;
+  if (partial) gainXP(awarded, 200, 200);
+  showFeedback(partial, explanation, awarded);
+  updateWeakTopics(partial || pct > 0.7, awarded);
+  state.quizAnswered = true;
+  if (partial) state.streak++; else { state.streak = 0; loseHP(8); }
+  updateHUD();
+  checkAchievements();
+}
+
+function processAnswer(correct, points, explanation) {
+  if (correct) {
+    state.streak++;
+    state.sessionScore += points;
+    const bonus = state.streak > 4 ? Math.floor(points * 0.5) : state.streak > 1 ? Math.floor(points * 0.2) : 0;
+    gainXP(points + bonus, 200, 200);
+    showFeedback(true, explanation, points + bonus);
+    // Glow the card
+    document.querySelector('.question-card').classList.add('correct-glow');
+  } else {
+    loseHP(Math.max(5, Math.floor(points * 0.3)));
+    showFeedback(false, explanation, 0);
+    document.querySelector('.question-card').classList.add('shake');
+  }
+  updateWeakTopics(correct, points);
+  updateHUD();
+  checkAchievements();
+}
+
+function updateWeakTopics(correct, points) {
+  const mission = GAME_DATA.chapters[state.currentChapter].missions[state.currentMission];
+  const key     = mission.title;
+  if (!state.weakTopics[key]) state.weakTopics[key] = { correct:0, total:0 };
+  state.weakTopics[key].total++;
+  if (correct) state.weakTopics[key].correct++;
+}
+
+function nextQuestion() {
+  state.currentQuizIndex++;
+  state.quizAnswered = false;
+  renderQuestion();
+}
+
+/* ============================================================
+   COMPLETE MISSION
+   ============================================================ */
+function completeMission() {
+  const ch      = GAME_DATA.chapters[state.currentChapter];
+  const mission = ch.missions[state.currentMission];
+  const key     = ch.id + '_' + mission.id;
+  if (!state.missionProgress[key]) {
+    state.missionProgress[key] = { completed:true, score:state.sessionScore };
+    if (!state.chapterProgress[ch.id]) state.chapterProgress[ch.id] = { missionsCompleted:0, bossDefeated:false };
+    state.chapterProgress[ch.id].missionsCompleted++;
+  }
+  const totalQ   = state.sessionQuestions;
+  const accuracy = totalQ ? Math.round((state.sessionScore / (totalQ * 15)) * 100) : 0;
+  $('game-content').innerHTML = `
+    <div style="text-align:center;padding:40px 20px;">
+      <div style="font-size:3rem;margin-bottom:16px;">🎯</div>
+      <h2 style="font-size:1.6rem;color:var(--gold);margin-bottom:8px;">Mission Complete!</h2>
+      <p style="color:var(--text-2);margin-bottom:24px;">${mission.title}</p>
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:32px;">
+        <div class="complete-stat"><div class="val">${state.sessionScore}</div><div class="key">Score</div></div>
+        <div class="complete-stat"><div class="val">${state.streak}</div><div class="key">Best Streak</div></div>
+        <div class="complete-stat"><div class="val">${state.hp}</div><div class="key">HP Left</div></div>
+      </div>
+      <div class="quiz-nav" style="justify-content:center;">
+        ${state.currentMission < ch.missions.length - 1
+          ? `<button class="btn-next" onclick="loadMission(${state.currentMission+1})">Next Mission →</button>`
+          : `<button class="btn-next" onclick="loadBoss()">⚔️ Face the Boss!</button>`}
+        <button class="btn-secondary" onclick="startQuiz()">🔄 Retry Quiz</button>
+      </div>
+    </div>
+  `;
+  // Update sidebar
+  document.querySelectorAll('.mission-item').forEach((el,i) => {
+    if (i === state.currentMission) { el.classList.add('completed'); el.querySelector('.mission-dot').style.background = 'var(--green)'; }
+  });
+}
+
+/* ============================================================
+   BOSS BATTLE
+   ============================================================ */
+function loadBoss() {
+  const ch = GAME_DATA.chapters[state.currentChapter];
+  state.currentPhase   = 'boss';
+  state.bossQuizIndex  = 0;
+  state.bossScore      = 0;
+  state.quizAnswered   = false;
+  state.currentQuizList = [...ch.boss.questions];
+  document.querySelectorAll('.mission-item').forEach(el => el.classList.remove('active'));
+  $('mission-item-boss').classList.add('active');
+  $('topbar-title').textContent = '⚔️ Final Boss Battle — ' + ch.boss.name;
+  $('game-content').innerHTML = `
+    <div class="boss-intro">
+      <div class="boss-icon">👹</div>
+      <div class="boss-name">${ch.boss.name}</div>
+      <div class="boss-desc">${ch.boss.description}</div>
+    </div>
+    <div class="quiz-nav" style="justify-content:center;">
+      <button class="btn-primary" onclick="renderBossQuestion()">⚔️ BEGIN BATTLE</button>
+    </div>
+  `;
+}
+
+function renderBossQuestion() {
+  state.currentQuizIndex = state.bossQuizIndex;
+  state.quizAnswered = false;
+  const qs  = state.currentQuizList;
+  const idx = state.bossQuizIndex;
+  if (idx >= qs.length) { completeBoss(); return; }
+  const q   = qs[idx];
+  const num = idx + 1;
+  const pct = Math.round((idx / qs.length) * 100);
+  const typeBadge = getTypeBadge(q.type, 'boss');
+  let qHTML = '';
+  if (q.type === 'mcq' || q.type === 'case') {
+    const caseCtx = q.context ? `<div class="case-context">📋 ${q.context}</div>` : '';
+    const optsHTML = q.opts.map((opt,i) => `
+      <button class="option-btn" id="opt-${i}" onclick="answerBossMCQ(${i})">
+        <span class="option-key">${String.fromCharCode(65+i)}</span><span>${opt}</span>
+      </button>`).join('');
+    qHTML = `${caseCtx}<div class="question-text">${q.q}</div><div class="options-grid">${optsHTML}</div>`;
+  } else if (q.type === 'tf') {
+    qHTML = `<div class="question-text">${q.q}</div>
+      <div class="tf-grid">
+        <button class="tf-btn true-btn" id="btn-true"  onclick="answerBossTF(true)">✅ TRUE</button>
+        <button class="tf-btn false-btn" id="btn-false" onclick="answerBossTF(false)">❌ FALSE</button>
+      </div>`;
+  }
+  $('game-content').innerHTML = `
+    <div class="quiz-progress-row">
+      <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="background:linear-gradient(90deg,var(--red),var(--orange));width:${pct}%"></div></div>
+      <span class="quiz-progress-text">Boss Q ${num}/${qs.length}</span>
+    </div>
+    <div class="boss-intro" style="padding:16px 24px;margin-bottom:20px;">
+      <div class="boss-name" style="font-size:1.1rem;">👹 ${GAME_DATA.chapters[state.currentChapter].boss.name}</div>
+    </div>
+    <div class="quiz-header">
+      <div class="quiz-type-badge qtype-boss">⚔️ Boss Question</div>
+      <div class="quiz-points">🏆 ${q.points} pts</div>
+    </div>
+    <div class="question-card">
+      <div class="question-num">Boss Question ${num} of ${qs.length}</div>
+      ${qHTML}
+      <div id="feedback-area"></div>
+    </div>
+    <div class="quiz-nav" id="quiz-nav" style="display:none;">
+      <button class="btn-next" onclick="nextBossQuestion()">Next Boss Question →</button>
+    </div>
+  `;
+}
+
+function answerBossMCQ(chosen) {
+  if (state.quizAnswered) return;
+  const q = state.currentQuizList[state.bossQuizIndex];
+  const correct = (chosen === q.correct);
+  document.querySelectorAll('.option-btn').forEach((btn,i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.classList.add('correct');
+    else if (i === chosen && !correct) btn.classList.add('wrong');
+  });
+  processBossAnswer(correct, q.points, q.explanation);
+}
+
+function answerBossTF(chosen) {
+  if (state.quizAnswered) return;
+  const q = state.currentQuizList[state.bossQuizIndex];
+  const correct = (chosen === q.correct);
+  $('btn-true').disabled = $('btn-false').disabled = true;
+  if (q.correct) { $('btn-true').classList.add('correct');  if(!correct) $('btn-false').classList.add('wrong'); }
+  else           { $('btn-false').classList.add('correct'); if(!correct) $('btn-true').classList.add('wrong'); }
+  processBossAnswer(correct, q.points, q.explanation);
+}
+
+function processBossAnswer(correct, points, explanation) {
+  if (correct) {
+    state.bossScore += points;
+    state.streak++;
+    gainXP(Math.floor(points * 1.5), 200, 200);
+    showFeedback(true, explanation, Math.floor(points * 1.5));
+  } else {
+    loseHP(Math.floor(points * 0.4));
+    showFeedback(false, explanation, 0);
+  }
+  state.quizAnswered = true;
+  updateHUD();
+}
+
+function nextBossQuestion() {
+  state.bossQuizIndex++;
+  state.quizAnswered = false;
+  renderBossQuestion();
+}
+
+function completeBoss() {
+  const ch  = GAME_DATA.chapters[state.currentChapter];
+  const max = state.currentQuizList.reduce((s,q) => s+q.points,0);
+  const pct = Math.round((state.bossScore / max) * 100);
+  const defeated = pct >= 60;
+  if (defeated) {
+    if (!state.chapterProgress[ch.id]) state.chapterProgress[ch.id] = {missionsCompleted:0,bossDefeated:false};
+    state.chapterProgress[ch.id].bossDefeated = true;
+    gainXP(ch.xpReward, 200, 200);
+    showAchievement('👑 Boss Defeated!', ch.boss.name + ' has been vanquished!');
+  }
+  $('game-content').innerHTML = `
+    <div style="text-align:center;padding:40px 20px;">
+      <div style="font-size:4rem;margin-bottom:16px;">${defeated ? '🏆' : '💀'}</div>
+      <h2 style="font-size:2rem;color:${defeated?'var(--gold)':'var(--red)'};margin-bottom:8px;">
+        ${defeated ? 'BOSS DEFEATED!' : 'Defeated by the Boss...'}
+      </h2>
+      <p style="color:var(--text-2);margin-bottom:24px;">
+        ${defeated ? 'You conquered ' + ch.boss.name + '!' : 'Study more and try again!'}
+      </p>
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:32px;">
+        <div class="complete-stat"><div class="val">${state.bossScore}</div><div class="key">Boss Score</div></div>
+        <div class="complete-stat"><div class="val">${pct}%</div><div class="key">Accuracy</div></div>
+        <div class="complete-stat"><div class="val">${defeated?'+'+ch.xpReward:'0'}</div><div class="key">Bonus XP</div></div>
+      </div>
+      <div class="quiz-nav" style="justify-content:center;">
+        <button class="btn-next" onclick="showScreen('chapters')">🗺️ Back to Levels</button>
+        <button class="btn-secondary" onclick="loadBoss()">🔄 Retry Boss</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   WEAK TOPICS REVIEW
+   ============================================================ */
+function showWeakTopics() {
+  const weak = Object.entries(state.weakTopics)
+    .map(([k,v]) => ({name:k, acc: v.total ? Math.round((v.correct/v.total)*100) : 0, total: v.total}))
+    .filter(x => x.total > 0)
+    .sort((a,b) => a.acc - b.acc);
+
+  if (!weak.length) {
+    alert('No quiz data yet! Complete some missions first.');
+    return;
+  }
+  const html = weak.map(w => `
+    <div class="weak-item">
+      <span class="name">${w.name}</span>
+      <span class="acc">${w.acc}%</span>
+    </div>`).join('');
+  // Show in a modal-style overlay on home
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:32px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;">
+      <h3 style="color:var(--red);margin-bottom:20px;">📊 Your Weak Topics</h3>
+      <div class="weak-panel">
+        <div class="weak-panel-title">Topics sorted by accuracy (lowest first)</div>
+        ${html}
+      </div>
+      <button class="btn-primary" onclick="this.closest('.modal-overlay').remove()" style="margin-top:16px;">Close</button>
+    </div>`;
+  modal.className = 'modal-overlay';
+  modal.onclick = (e) => { if(e.target===modal) modal.remove(); };
+  document.body.appendChild(modal);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+initParticles();
+updateHUD();
+
+// Keyboard shortcut: A/B/C/D for MCQ, T/F for TF
+document.addEventListener('keydown', e => {
+  if (state.quizAnswered) return;
+  if (state.currentPhase === 'quiz' || state.currentPhase === 'boss') {
+    const key = e.key.toUpperCase();
+    if (['A','B','C','D'].includes(key)) {
+      const i = key.charCodeAt(0)-65;
+      const btn = document.getElementById('opt-'+i);
+      if (btn && !btn.disabled) btn.click();
+    }
+    if (key === 'T') { const b = document.getElementById('btn-true');  if(b && !b.disabled) b.click(); }
+    if (key === 'F') { const b = document.getElementById('btn-false'); if(b && !b.disabled) b.click(); }
+  }
+});
+</script>
+</body>
+</html>
